@@ -7,7 +7,14 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "action": {},
+  "action": {
+    "default_icon": "assets/logo.png"
+  },
+  "icons": {
+    "16": "assets/logo.png",
+    "48": "assets/logo.png",
+    "128": "assets/logo.png"
+  },
   "permissions": ["activeTab", "scripting", "storage"],
   "content_scripts": [
     {
