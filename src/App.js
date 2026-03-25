@@ -126,8 +126,9 @@ const App = () => {
     return () => document.removeEventListener('mouseover', handleMouseOver);
   }, [postData]);
 
-  const generateComment = async () => {
-    if (!postData.content || postData.content === 'No post captured yet.') return;
+  const generateComment = async (contentOverride = null) => {
+    const targetContent = contentOverride || postData.content;
+    if (!targetContent || targetContent === 'No post captured yet.') return;
 
     setIsLoading(true);
     setNotes(''); // Clear previous notes
@@ -137,11 +138,11 @@ const App = () => {
         "messages": [
           {
             "role": "system",
-            "content": `You are a LinkedIn engagement expert. Generate a ${tone.toLowerCase()} and engaging comment for the following post.`
+            "content": `You are a LinkedIn engagement expert. Generate a ${tone.toLowerCase()} and engaging comment for the following post. Respond with ONLY the comment text.`
           },
           {
             "role": "user",
-            "content": postData.content
+            "content": targetContent
           }
         ],
         "model": "openai/gpt-oss-120b",
@@ -164,6 +165,17 @@ const App = () => {
       setIsLoading(false);
     }
   };
+
+  // Auto-generate when content changes (with basic protection against excessive calls)
+  useEffect(() => {
+    if (postData.content && postData.content !== 'No post captured yet.') {
+        // Prevent re-triggering if the content is the same as what we just generated for
+        const timer = setTimeout(() => {
+            generateComment();
+        }, 500); // 500ms debounce
+        return () => clearTimeout(timer);
+    }
+  }, [postData.content, tone]);
 
   return (
     <div style={{
@@ -237,21 +249,24 @@ const App = () => {
       </main>
 
       <div style={{ marginTop: '20px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '15px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#666' }}>
+            <label style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0a66c2' }}>
               Comment Tone
             </label>
             <select 
               value={tone}
               onChange={(e) => setTone(e.target.value)}
               style={{
-                fontSize: '0.8rem',
-                padding: '2px 4px',
-                borderRadius: '4px',
-                border: '1px solid #ddd',
+                fontSize: '1rem',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: '1px solid #0a66c2',
                 outline: 'none',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                background: '#fff',
+                color: '#0a66c2',
+                fontWeight: 'bold'
               }}
             >
               <option value="Professional">Professional</option>
@@ -263,9 +278,9 @@ const App = () => {
             </select>
           </div>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#666' }}>
-              AI Comment
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#666' }}>
+              AI Generated Comment
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
@@ -274,52 +289,57 @@ const App = () => {
                   alert('Copied to clipboard!');
                 }}
                 style={{
-                  fontSize: '0.7rem',
+                  fontSize: '0.8rem',
                   background: '#444',
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',
-                  padding: '4px 10px',
-                  cursor: 'pointer'
+                  padding: '5px 12px',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
                 }}
+                onMouseOver={(e) => e.target.style.background = '#000'}
+                onMouseOut={(e) => e.target.style.background = '#444'}
               >
                 Copy 📋
               </button>
               <button
-                onClick={generateComment}
+                onClick={() => generateComment()}
                 disabled={isLoading}
                 style={{
-                  fontSize: '0.7rem',
+                  fontSize: '0.8rem',
                   background: isLoading ? '#ccc' : '#0a66c2',
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',
-                  padding: '4px 10px',
+                  padding: '5px 12px',
                   cursor: isLoading ? 'default' : 'pointer'
                 }}
               >
-                {isLoading ? 'Generating...' : 'Magic Comment ✨'}
+                {isLoading ? 'Generating..' : 'Regenerate ✨'}
               </button>
             </div>
           </div>
         </div>
         <textarea
-          placeholder="Type something..."
+          placeholder="AI comment will appear here automatically..."
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           style={{
             width: '100%',
-            height: '120px',
+            height: '150px',
             borderRadius: '8px',
-            border: '1px solid #ddd',
-            padding: '10px',
-            fontSize: '0.9rem',
+            border: '2px solid rgba(10, 102, 194, 0.2)',
+            padding: '12px',
+            fontSize: '1rem',
             fontFamily: 'inherit',
             resize: 'none',
             boxSizing: 'border-box',
             outline: 'none',
-            background: 'rgba(255, 255, 255, 0.8)',
+            background: 'white',
             color: '#000',
+            lineHeight: '1.5',
+            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
           }}
         />
       </div>
