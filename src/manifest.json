@@ -23,6 +23,7 @@
     }
   ],
   "host_permissions": [
-    "https://*.linkedin.com/*"
+    "https://*.linkedin.com/*",
+    "https://api.groq.com/*"
   ]
 }

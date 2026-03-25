@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Groq } from 'groq-sdk';
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+  dangerouslyAllowBrowser: true // Required for browser usage
+});
 
 const App = () => {
+  // ... existing state ...
   const [postData, setPostData] = useState({
     content: 'No post captured yet.',
     authorName: '',
@@ -8,13 +15,22 @@ const App = () => {
     authorImage: ''
   });
 
+  const [notes, setNotes] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // ... handleMouseOver useEffect remains same ...
   useEffect(() => {
     const handleMouseOver = (e) => {
       const path = e.composedPath();
       
       let postContainer = null;
       for (const el of path) {
-        if (el.getAttribute && (el.getAttribute('componentkey') || (el.className && el.className.includes('feed-shared-update-v2')))) {
+        if (!el || !el.getAttribute) continue;
+        
+        const componentKey = el.getAttribute('componentkey');
+        const isPost = (el.classList && el.classList.contains('feed-shared-update-v2')) || componentKey;
+        
+        if (isPost) {
           postContainer = el;
           break;
         }
@@ -27,10 +43,10 @@ const App = () => {
         
         const authorNameEl = postContainer.querySelector('.update-v2-social-actor__name') || 
                              postContainer.querySelector('span[dir="ltr"] > span > span') ||
-                             postContainer.querySelector('.f99d247a._03704b74'); // From user snippet
+                             postContainer.querySelector('.f99d247a._03704b74'); 
         
         const authorBioEl = postContainer.querySelector('.update-v2-social-actor__description') ||
-                            postContainer.querySelector('.f99d247a._2d22aaeb'); // From user snippet
+                            postContainer.querySelector('.f99d247a._2d22aaeb'); 
         
         const authorImgEl = postContainer.querySelector('img.update-v2-social-actor__avatar-image') ||
                             postContainer.querySelector('img[alt*="profile"]');
@@ -54,6 +70,45 @@ const App = () => {
     document.addEventListener('mouseover', handleMouseOver);
     return () => document.removeEventListener('mouseover', handleMouseOver);
   }, [postData]);
+
+  const generateComment = async () => {
+    if (!postData.content || postData.content === 'No post captured yet.') return;
+    
+    setIsLoading(true);
+    setNotes(''); // Clear previous notes
+    
+    try {
+      const chatCompletion = await groq.chat.completions.create({
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a LinkedIn engagement expert. Generate a professional and engaging comment for the following post."
+          },
+          {
+            "role": "user",
+            "content": postData.content
+          }
+        ],
+        "model": "openai/gpt-oss-120b",
+        "temperature": 1,
+        "max_completion_tokens": 8192,
+        "top_p": 1,
+        "stream": true,
+      });
+
+      let fullContent = '';
+      for await (const chunk of chatCompletion) {
+        const delta = chunk.choices[0]?.delta?.content || '';
+        fullContent += delta;
+        setNotes(fullContent);
+      }
+    } catch (error) {
+      console.error('Groq Error:', error);
+      setNotes('Failed to generate comment. Check console for details.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div style={{
@@ -119,11 +174,54 @@ const App = () => {
         borderRadius: '8px',
         padding: '15px',
         border: '1px solid #eee',
+        maxHeight: '400px'
       }}>
-        <div style={{ lineHeight: '1.6', fontSize: '0.95rem' }}>
+        <div style={{ lineHeight: '1.6', fontSize: '0.95rem', whiteSpace: 'pre-wrap' }}>
           {postData.content}
         </div>
       </main>
+
+      <div style={{ marginTop: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+          <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#666' }}>
+            Generated Comment / Notes
+          </label>
+          <button 
+            onClick={generateComment}
+            disabled={isLoading}
+            style={{
+              fontSize: '0.7rem',
+              background: isLoading ? '#ccc' : '#0a66c2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 10px',
+              cursor: isLoading ? 'default' : 'pointer'
+            }}
+          >
+            {isLoading ? 'Generating...' : 'Magic Comment ✨'}
+          </button>
+        </div>
+        <textarea 
+          placeholder="Type something..."
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          style={{
+            width: '100%',
+            height: '120px',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+            padding: '10px',
+            fontSize: '0.9rem',
+            fontFamily: 'inherit',
+            resize: 'none',
+            boxSizing: 'border-box',
+            outline: 'none',
+            background: 'rgba(255, 255, 255, 0.8)',
+            color: '#000',
+          }}
+        />
+      </div>
 
       <footer style={{
         marginTop: '20px',
