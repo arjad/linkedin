@@ -37,24 +37,37 @@ const App = () => {
       }
 
       if (postContainer) {
-        const textBox = postContainer.querySelector('[data-testid="expandable-text-box"]') || 
-                        postContainer.querySelector('.feed-shared-update-v2__description') ||
-                        postContainer.querySelector('.update-components-text');
+        // Find the "Main" container of the post (the large update block)
+        const mainUpdate = postContainer.closest('.feed-shared-update-v2') || 
+                           postContainer.closest('[data-urn]') ||
+                           postContainer.closest('[data-id]') ||
+                           postContainer;
+
+        const textBox = mainUpdate.querySelector('[data-testid="expandable-text-box"]') || 
+                        mainUpdate.querySelector('.feed-shared-update-v2__description') ||
+                        mainUpdate.querySelector('.update-components-text') ||
+                        mainUpdate.querySelector('.update-components-article__description');
         
-        const authorNameEl = postContainer.querySelector('.update-v2-social-actor__name') || 
-                             postContainer.querySelector('.update-components-actor__name') ||
-                             postContainer.querySelector('span[dir="ltr"] > span > span') ||
-                             postContainer.querySelector('.f99d247a._03704b74'); 
+        const authorNameEl = mainUpdate.querySelector('.update-v2-social-actor__name') || 
+                             mainUpdate.querySelector('.update-components-actor__name') ||
+                             mainUpdate.querySelector('.update-components-article__actor-name') ||
+                             mainUpdate.querySelector('span[dir="ltr"] > span > span') ||
+                             mainUpdate.querySelector('.f99d247a._03704b74') ||
+                             mainUpdate.querySelector('p[class*="_03704b74"]');
         
-        const authorBioEl = postContainer.querySelector('.update-v2-social-actor__description') ||
-                            postContainer.querySelector('.update-components-actor__description') ||
-                            postContainer.querySelector('.text-body-xsmall') ||
-                            postContainer.querySelector('.f99d247a._2d22aaeb'); 
+        const authorBioEl = mainUpdate.querySelector('.update-v2-social-actor__description') ||
+                            mainUpdate.querySelector('.update-components-actor__description') ||
+                            mainUpdate.querySelector('.update-components-article__actor-description') ||
+                            mainUpdate.querySelector('.text-body-xsmall') ||
+                            mainUpdate.querySelector('.f99d247a._2d22aaeb') ||
+                            mainUpdate.querySelector('p[class*="_2d22aaeb"]');
         
-        const authorImgEl = postContainer.querySelector('img.update-v2-social-actor__avatar-image') ||
-                            postContainer.querySelector('img.update-components-actor__avatar-image') ||
-                            postContainer.querySelector('img[alt*="profile"]') ||
-                            postContainer.querySelector('img[alt*="View"]');
+        const authorImgEl = mainUpdate.querySelector('img.update-v2-social-actor__avatar-image') ||
+                            mainUpdate.querySelector('img.update-components-actor__avatar-image') ||
+                            mainUpdate.querySelector('img.update-components-actor__image') ||
+                            mainUpdate.querySelector('img[alt*="profile"]') ||
+                            mainUpdate.querySelector('img[alt*="logo"]') ||
+                            mainUpdate.querySelector('img[alt*="View"]');
 
         const content = textBox ? textBox.innerText : '';
         const authorName = authorNameEl ? authorNameEl.innerText.split('\n')[0].trim() : '';
@@ -62,6 +75,7 @@ const App = () => {
         const authorImage = authorImgEl ? authorImgEl.src : '';
 
         if (content || authorName) {
+          console.log('LinkedIn Reader: Captured!', { authorName, authorBio, hasImage: !!authorImage });
           setPostData(prev => ({
             content: content || prev.content,
             authorName: authorName || prev.authorName,
