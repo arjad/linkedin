@@ -21,6 +21,7 @@ const App = () => {
   const [tone, setTone] = useState('Professional');
   const [wordCount, setWordCount] = useState('Medium');
   const [isLoading, setIsLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // ... handleMouseOver useEffect remains same ...
   useEffect(() => {
@@ -203,6 +204,12 @@ const App = () => {
     }
   }, [postData.content, tone, wordCount]);
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(notes);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div style={{
       display: 'flex',
@@ -336,24 +343,24 @@ const App = () => {
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(notes);
-                  alert('Copied to clipboard!');
-                }}
+                onClick={handleCopy}
                 style={{
                   fontSize: '0.8rem',
-                  background: '#444',
+                  background: copied ? '#059669' : '#444',
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',
                   padding: '5px 12px',
                   cursor: 'pointer',
-                  transition: 'background 0.2s'
+                  transition: 'background 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
-                onMouseOver={(e) => e.target.style.background = '#000'}
-                onMouseOut={(e) => e.target.style.background = '#444'}
+                onMouseOver={(e) => !copied && (e.target.style.background = '#000')}
+                onMouseOut={(e) => !copied && (e.target.style.background = '#444')}
               >
-                Copy 📋
+                {copied ? 'Copied! ✅' : 'Copy 📋'}
               </button>
               <button
                 onClick={() => generateComment()}
