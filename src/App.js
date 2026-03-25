@@ -12,7 +12,8 @@ const App = () => {
     content: 'No post captured yet.',
     authorName: '',
     authorBio: '',
-    authorImage: ''
+    authorImage: '',
+    isImagePost: false
   });
 
   const [notes, setNotes] = useState('');
@@ -88,11 +89,18 @@ const App = () => {
             }
           }
 
-          const imgEl = profileLink.querySelector('img') ||
+          const authorImgEl = profileLink.querySelector('img') ||
             mainUpdate.querySelector('img[alt*="profile"]') ||
             mainUpdate.querySelector('img[alt*="View"]');
-          if (imgEl) authorImage = imgEl.src;
+          if (authorImgEl) authorImage = authorImgEl.src;
         }
+
+        // Search for main post images (excluding profile pictures and small icons)
+        const postImages = Array.from(mainUpdate.querySelectorAll('img')).filter(img => {
+            const rect = img.getBoundingClientRect();
+            // Post images are usually larger than avatars
+            return rect.width > 200 || img.classList.contains('update-components-image__image');
+        });
 
         // fallbacks
         if (!authorName) {
@@ -110,14 +118,15 @@ const App = () => {
         }
 
         const content = textBox ? textBox.innerText : '';
+        const isImagePost = (content.length < 50) && postImages.length > 0;
 
-        if (content || authorName) {
-          console.log('LinkedIn Reader: Captured!', { authorName, authorBio, hasImage: !!authorImage });
+        if (content || authorName || postImages.length > 0) {
           setPostData(prev => ({
             content: content || prev.content,
             authorName: authorName || prev.authorName,
             authorBio: authorBio || prev.authorBio,
-            authorImage: authorImage || prev.authorImage
+            authorImage: authorImage || prev.authorImage,
+            isImagePost: isImagePost
           }));
         }
       }
@@ -129,7 +138,7 @@ const App = () => {
 
   const generateComment = async (contentOverride = null) => {
     const targetContent = contentOverride || postData.content;
-    if (!targetContent || targetContent === 'No post captured yet.') return;
+    if (!targetContent && !postData.isImagePost) return;
 
     setIsLoading(true);
     setNotes(''); // Clear previous notes
@@ -151,6 +160,7 @@ const App = () => {
             - NO hashtags.
             - no extra emoji
             - Target length: ${wordCountConstraint}.
+            ${postData.isImagePost ? '- The post is primarily an image/visual, so keep the comment relevant to visual content.' : ''}
             - Respond with ONLY the comment text.`
           },
           {
@@ -254,8 +264,24 @@ const App = () => {
         borderRadius: '8px',
         padding: '15px',
         border: '1px solid #eee',
-        maxHeight: '300px'
+        maxHeight: '300px',
+        position: 'relative'
       }}>
+        {postData.isImagePost && (
+          <div style={{
+            background: 'rgba(10, 102, 194, 0.1)',
+            color: '#0a66c2',
+            padding: '8px',
+            borderRadius: '4px',
+            fontSize: '0.85rem',
+            textAlign: 'center',
+            marginBottom: '10px',
+            fontWeight: 'bold',
+            border: '1px solid rgba(10, 102, 194, 0.2)'
+          }}>
+            📷 Major content is from image
+          </div>
+        )}
         <div style={{ lineHeight: '1.6', fontSize: '0.95rem', whiteSpace: 'pre-wrap' }}>
           {postData.content}
         </div>
