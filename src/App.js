@@ -17,6 +17,7 @@ const App = () => {
 
   const [notes, setNotes] = useState('');
   const [tone, setTone] = useState('Professional');
+  const [wordCount, setWordCount] = useState('Medium');
   const [isLoading, setIsLoading] = useState(false);
 
   // ... handleMouseOver useEffect remains same ...
@@ -28,11 +29,11 @@ const App = () => {
       let mainUpdate = null;
       for (const el of path) {
         if (!el || !el.getAttribute) continue;
-        
-        const isMainUpdate = (el.classList && el.classList.contains('feed-shared-update-v2')) || 
-                             el.hasAttribute('data-urn') || 
-                             el.hasAttribute('data-id');
-        
+
+        const isMainUpdate = (el.classList && el.classList.contains('feed-shared-update-v2')) ||
+          el.hasAttribute('data-urn') ||
+          el.hasAttribute('data-id');
+
         if (isMainUpdate) {
           mainUpdate = el;
           // Keep going up to find the highest update container (in case of nested interactions)
@@ -68,7 +69,7 @@ const App = () => {
           const ariaContainer = profileLink.closest('[aria-label*="Profile"]') ||
             profileLink.closest('[aria-label*="profile"]') ||
             profileLink.querySelector('[aria-label]');
-          
+
           if (ariaContainer) {
             const label = ariaContainer.getAttribute('aria-label');
             authorName = label.replace(/View /i, '').replace(/[\'’]s profile/i, '').replace(/Verified/i, '').split('•')[0].split(',')[0].trim();
@@ -79,11 +80,11 @@ const App = () => {
             const pTags = actorSection.querySelectorAll('p, span');
             if (pTags.length > 0 && !authorName) authorName = pTags[0].innerText.trim();
             for (let i = 0; i < pTags.length; i++) {
-                const text = pTags[i].innerText.trim();
-                if (text.length > 20 && !text.includes('followers') && !text.includes('likes this')) {
-                    authorBio = text;
-                    break;
-                }
+              const text = pTags[i].innerText.trim();
+              if (text.length > 20 && !text.includes('followers') && !text.includes('likes this')) {
+                authorBio = text;
+                break;
+              }
             }
           }
 
@@ -133,6 +134,13 @@ const App = () => {
     setIsLoading(true);
     setNotes(''); // Clear previous notes
 
+    // Map word count labels to actual constraints
+    const wordCountConstraint = {
+      'Short': 'absolute maximum 15 words',
+      'Medium': 'approximately 30-40 words',
+      'Long': 'approximately 60-80 words'
+    }[wordCount];
+
     try {
       const chatCompletion = await groq.chat.completions.create({
         "messages": [
@@ -141,7 +149,8 @@ const App = () => {
             "content": `You are a LinkedIn engagement expert. Generate a ${tone.toLowerCase()} and engaging comment for the following post. 
             Constraints:
             - NO hashtags.
-            - Keep it concise (maximum 2-3 sentences).
+            - no extra emoji
+            - Target length: ${wordCountConstraint}.
             - Respond with ONLY the comment text.`
           },
           {
@@ -173,13 +182,13 @@ const App = () => {
   // Auto-generate when content changes (with basic protection against excessive calls)
   useEffect(() => {
     if (postData.content && postData.content !== 'No post captured yet.') {
-        // Prevent re-triggering if the content is the same as what we just generated for
-        const timer = setTimeout(() => {
-            generateComment();
-        }, 500); // 500ms debounce
-        return () => clearTimeout(timer);
+      // Prevent re-triggering if the content is the same as what we just generated for
+      const timer = setTimeout(() => {
+        generateComment();
+      }, 500); // 500ms debounce
+      return () => clearTimeout(timer);
     }
-  }, [postData.content, tone]);
+  }, [postData.content, tone, wordCount]);
 
   return (
     <div style={{
@@ -258,7 +267,7 @@ const App = () => {
             <label style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0a66c2' }}>
               Comment Tone
             </label>
-            <select 
+            <select
               value={tone}
               onChange={(e) => setTone(e.target.value)}
               style={{
@@ -281,7 +290,32 @@ const App = () => {
               <option value="Thought-provoking">Thought-provoking</option>
             </select>
           </div>
-          
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0a66c2' }}>
+              Word Count
+            </label>
+            <select
+              value={wordCount}
+              onChange={(e) => setWordCount(e.target.value)}
+              style={{
+                fontSize: '1rem',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: '1px solid #0a66c2',
+                outline: 'none',
+                cursor: 'pointer',
+                background: '#fff',
+                color: '#0a66c2',
+                fontWeight: 'bold'
+              }}
+            >
+              <option value="Short">Short (~15 words)</option>
+              <option value="Medium">Medium (~40 words)</option>
+              <option value="Long">Long (~80 words)</option>
+            </select>
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
             <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#666' }}>
               AI Generated Comment
