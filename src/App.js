@@ -13,7 +13,8 @@ const App = () => {
     authorName: '',
     authorBio: '',
     authorImage: '',
-    isImagePost: false
+    isLowContent: false,
+    isImagePost: false // Keep for AI prompt context but remove from UI
   });
 
   const [notes, setNotes] = useState('');
@@ -118,6 +119,7 @@ const App = () => {
         }
 
         const content = textBox ? textBox.innerText : '';
+        const isLowContent = content.length > 0 && content.length < 15;
         const isImagePost = (content.length < 50) && postImages.length > 0;
 
         if (content || authorName || postImages.length > 0) {
@@ -126,6 +128,7 @@ const App = () => {
             authorName: authorName || prev.authorName,
             authorBio: authorBio || prev.authorBio,
             authorImage: authorImage || prev.authorImage,
+            isLowContent: isLowContent,
             isImagePost: isImagePost
           }));
         }
@@ -267,21 +270,6 @@ const App = () => {
         maxHeight: '300px',
         position: 'relative'
       }}>
-        {postData.isImagePost && (
-          <div style={{
-            background: 'rgba(10, 102, 194, 0.1)',
-            color: '#0a66c2',
-            padding: '8px',
-            borderRadius: '4px',
-            fontSize: '0.85rem',
-            textAlign: 'center',
-            marginBottom: '10px',
-            fontWeight: 'bold',
-            border: '1px solid rgba(10, 102, 194, 0.2)'
-          }}>
-            📷 Major content is from image
-          </div>
-        )}
         <div style={{ lineHeight: '1.6', fontSize: '0.95rem', whiteSpace: 'pre-wrap' }}>
           {postData.content}
         </div>
@@ -385,6 +373,21 @@ const App = () => {
             </div>
           </div>
         </div>
+
+        {postData.isLowContent && (
+          <div style={{
+            color: '#c2410a',
+            fontSize: '0.75rem',
+            marginBottom: '8px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            ⚠️ Not enough words to generate accurate comment form
+          </div>
+        )}
+
         <textarea
           placeholder="AI comment will appear here automatically..."
           value={notes}
