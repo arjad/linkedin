@@ -22,14 +22,14 @@ const App = () => {
   useEffect(() => {
     const handleMouseOver = (e) => {
       const path = e.composedPath();
-      
+
       let postContainer = null;
       for (const el of path) {
         if (!el || !el.getAttribute) continue;
-        
+
         const componentKey = el.getAttribute('componentkey');
         const isPost = (el.classList && el.classList.contains('feed-shared-update-v2')) || componentKey;
-        
+
         if (isPost) {
           postContainer = el;
           break;
@@ -38,41 +38,78 @@ const App = () => {
 
       if (postContainer) {
         // Find the "Main" container of the post (the large update block)
-        const mainUpdate = postContainer.closest('.feed-shared-update-v2') || 
-                           postContainer.closest('[data-urn]') ||
-                           postContainer.closest('[data-id]') ||
-                           postContainer;
+        const mainUpdate = postContainer.closest('.feed-shared-update-v2') ||
+          postContainer.closest('[data-urn]') ||
+          postContainer.closest('[data-id]') ||
+          postContainer;
 
-        const textBox = mainUpdate.querySelector('[data-testid="expandable-text-box"]') || 
-                        mainUpdate.querySelector('.feed-shared-update-v2__description') ||
-                        mainUpdate.querySelector('.update-components-text') ||
-                        mainUpdate.querySelector('.update-components-article__description');
-        
-        const authorNameEl = mainUpdate.querySelector('.update-v2-social-actor__name') || 
-                             mainUpdate.querySelector('.update-components-actor__name') ||
-                             mainUpdate.querySelector('.update-components-article__actor-name') ||
-                             mainUpdate.querySelector('span[dir="ltr"] > span > span') ||
-                             mainUpdate.querySelector('.f99d247a._03704b74') ||
-                             mainUpdate.querySelector('p[class*="_03704b74"]');
-        
-        const authorBioEl = mainUpdate.querySelector('.update-v2-social-actor__description') ||
-                            mainUpdate.querySelector('.update-components-actor__description') ||
-                            mainUpdate.querySelector('.update-components-article__actor-description') ||
-                            mainUpdate.querySelector('.text-body-xsmall') ||
-                            mainUpdate.querySelector('.f99d247a._2d22aaeb') ||
-                            mainUpdate.querySelector('p[class*="_2d22aaeb"]');
-        
-        const authorImgEl = mainUpdate.querySelector('img.update-v2-social-actor__avatar-image') ||
-                            mainUpdate.querySelector('img.update-components-actor__avatar-image') ||
-                            mainUpdate.querySelector('img.update-components-actor__image') ||
-                            mainUpdate.querySelector('img[alt*="profile"]') ||
-                            mainUpdate.querySelector('img[alt*="logo"]') ||
-                            mainUpdate.querySelector('img[alt*="View"]');
+        const textBox = mainUpdate.querySelector('[data-testid="expandable-text-box"]') ||
+          mainUpdate.querySelector('.feed-shared-update-v2__description') ||
+          mainUpdate.querySelector('.update-components-text') ||
+          mainUpdate.querySelector('.update-components-article__description');
+
+        // Find the link to the profile, which is usually a good anchor
+        const profileLink = mainUpdate.querySelector('a[href*="/in/"]') ||
+          mainUpdate.querySelector('a[href*="/company/"]');
+
+        let authorName = '';
+        let authorBio = '';
+        let authorImage = '';
+
+        if (profileLink) {
+          // Try to find name from aria-label of parent or nearby element (very stable)
+          const ariaContainer = profileLink.closest('[aria-label*="Profile"]') ||
+            profileLink.closest('[aria-label*="profile"]') ||
+            profileLink.closest('[aria-label*="Hira Iqbal"]') || // Specific to user snippet
+            profileLink.querySelector('[aria-label]');
+          
+          if (ariaContainer) {
+            const label = ariaContainer.getAttribute('aria-label');
+            // Extract name: "View Hira Iqbal’s profile" -> "Hira Iqbal"
+            authorName = label.replace(/View /i, '').replace(/[\'’]s profile/i, '').replace(/Verified/i, '').split('•')[0].trim();
+          }
+
+          // Fallback for name/bio using the obfuscated p tags near the profile link
+          const actorSection = profileLink.closest('div');
+          if (actorSection) {
+            const pTags = actorSection.querySelectorAll('p');
+            if (pTags.length > 0 && !authorName) authorName = pTags[0].innerText.trim();
+            // The bio is usually the next p tag. In the snippet it's the 3rd p tag if "Verified" is there.
+            // Let's look for a longer p tag which is usually the bio.
+            for (let i = 1; i < pTags.length; i++) {
+                const text = pTags[i].innerText.trim();
+                if (text.length > 20 && !text.includes('followers')) {
+                    authorBio = text;
+                    break;
+                }
+                if (i === 1 && !authorBio) authorBio = text;
+            }
+          }
+
+          // Image is usually in the figure inside the profile link or very close
+          const imgEl = profileLink.querySelector('img') ||
+            mainUpdate.querySelector('img[alt*="profile"]') ||
+            mainUpdate.querySelector('img[alt*="View"]');
+          if (imgEl) authorImage = imgEl.src;
+        }
+
+        // Broadest fallbacks if still missing
+        if (!authorName) {
+          const nameEl = mainUpdate.querySelector('.update-v2-social-actor__name') ||
+            mainUpdate.querySelector('.update-components-actor__name') ||
+            mainUpdate.querySelector('.f99d247a._03704b74');
+          if (nameEl) authorName = nameEl.innerText.split('\n')[0].trim();
+        }
+
+        if (!authorBio) {
+          const bioEl = mainUpdate.querySelector('.update-v2-social-actor__description') ||
+            mainUpdate.querySelector('.update-components-actor__description') ||
+            mainUpdate.querySelector('.f99d247a._2d22aaeb') ||
+            mainUpdate.querySelector('p[class*="_8ac8b3c9"]');
+          if (bioEl) authorBio = bioEl.innerText.trim();
+        }
 
         const content = textBox ? textBox.innerText : '';
-        const authorName = authorNameEl ? authorNameEl.innerText.split('\n')[0].trim() : '';
-        const authorBio = authorBioEl ? authorBioEl.innerText.trim() : '';
-        const authorImage = authorImgEl ? authorImgEl.src : '';
 
         if (content || authorName) {
           console.log('LinkedIn Reader: Captured!', { authorName, authorBio, hasImage: !!authorImage });
@@ -92,10 +129,10 @@ const App = () => {
 
   const generateComment = async () => {
     if (!postData.content || postData.content === 'No post captured yet.') return;
-    
+
     setIsLoading(true);
     setNotes(''); // Clear previous notes
-    
+
     try {
       const chatCompletion = await groq.chat.completions.create({
         "messages": [
@@ -137,10 +174,10 @@ const App = () => {
       color: '#333',
       position: 'relative',
     }}>
-      <button 
+      <button
         onClick={() => {
-            const container = document.getElementById('linkedin-sidebar-extension-root');
-            if (container) container.style.display = 'none';
+          const container = document.getElementById('linkedin-sidebar-extension-root');
+          if (container) container.style.display = 'none';
         }}
         style={{
           position: 'absolute',
@@ -154,7 +191,7 @@ const App = () => {
           zIndex: 10
         }}
       >✕</button>
-      
+
       <header style={{
         padding: '0 0 15px 0',
         borderBottom: '1px solid #ddd',
@@ -173,9 +210,9 @@ const App = () => {
           borderRadius: '8px',
         }}>
           {postData.authorImage && (
-            <img 
-              src={postData.authorImage} 
-              style={{ width: '48px', height: '48px', borderRadius: '50%', marginRight: '12px', border: '2px solid #fff' }} 
+            <img
+              src={postData.authorImage}
+              style={{ width: '48px', height: '48px', borderRadius: '50%', marginRight: '12px', border: '2px solid #fff' }}
               alt="Author"
             />
           )}
@@ -206,7 +243,7 @@ const App = () => {
             Generated Comment / Notes
           </label>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button 
+            <button
               onClick={() => {
                 navigator.clipboard.writeText(notes);
                 alert('Copied to clipboard!');
@@ -223,7 +260,7 @@ const App = () => {
             >
               Copy 📋
             </button>
-            <button 
+            <button
               onClick={generateComment}
               disabled={isLoading}
               style={{
@@ -240,7 +277,7 @@ const App = () => {
             </button>
           </div>
         </div>
-        <textarea 
+        <textarea
           placeholder="Type something..."
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
