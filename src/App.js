@@ -23,77 +23,76 @@ const App = () => {
     const handleMouseOver = (e) => {
       const path = e.composedPath();
 
-      let postContainer = null;
+      // Find the "Main" container of the post (the large update block)
+      let mainUpdate = null;
       for (const el of path) {
         if (!el || !el.getAttribute) continue;
-
-        const componentKey = el.getAttribute('componentkey');
-        const isPost = (el.classList && el.classList.contains('feed-shared-update-v2')) || componentKey;
-
-        if (isPost) {
-          postContainer = el;
-          break;
+        
+        const isMainUpdate = (el.classList && el.classList.contains('feed-shared-update-v2')) || 
+                             el.hasAttribute('data-urn') || 
+                             el.hasAttribute('data-id');
+        
+        if (isMainUpdate) {
+          mainUpdate = el;
+          // Keep going up to find the highest update container (in case of nested interactions)
         }
       }
 
-      if (postContainer) {
-        // Find the "Main" container of the post (the large update block)
-        const mainUpdate = postContainer.closest('.feed-shared-update-v2') ||
-          postContainer.closest('[data-urn]') ||
-          postContainer.closest('[data-id]') ||
-          postContainer;
+      // Fallback: search for any componentkey if no main update found
+      if (!mainUpdate) {
+        for (const el of path) {
+          if (el.getAttribute && el.getAttribute('componentkey')) {
+            mainUpdate = el.closest('.feed-shared-update-v2') || el.closest('[data-urn]') || el;
+            break;
+          }
+        }
+      }
 
+      if (mainUpdate) {
         const textBox = mainUpdate.querySelector('[data-testid="expandable-text-box"]') ||
           mainUpdate.querySelector('.feed-shared-update-v2__description') ||
           mainUpdate.querySelector('.update-components-text') ||
           mainUpdate.querySelector('.update-components-article__description');
 
-        // Find the link to the profile, which is usually a good anchor
-        const profileLink = mainUpdate.querySelector('a[href*="/in/"]') ||
-          mainUpdate.querySelector('a[href*="/company/"]');
+        // Find the link to the profile, excluding social actions (likes/comments)
+        const profileLinks = Array.from(mainUpdate.querySelectorAll('a[href*="/in/"], a[href*="/company/"]'));
+        // The real author is usually the first profile link in the update
+        const profileLink = profileLinks.find(link => !link.closest('.feed-shared-social-action-bar'));
 
         let authorName = '';
         let authorBio = '';
         let authorImage = '';
 
         if (profileLink) {
-          // Try to find name from aria-label of parent or nearby element (very stable)
           const ariaContainer = profileLink.closest('[aria-label*="Profile"]') ||
             profileLink.closest('[aria-label*="profile"]') ||
-            profileLink.closest('[aria-label*="Hira Iqbal"]') || // Specific to user snippet
             profileLink.querySelector('[aria-label]');
           
           if (ariaContainer) {
             const label = ariaContainer.getAttribute('aria-label');
-            // Extract name: "View Hira Iqbal’s profile" -> "Hira Iqbal"
-            authorName = label.replace(/View /i, '').replace(/[\'’]s profile/i, '').replace(/Verified/i, '').split('•')[0].trim();
+            authorName = label.replace(/View /i, '').replace(/[\'’]s profile/i, '').replace(/Verified/i, '').split('•')[0].split(',')[0].trim();
           }
 
-          // Fallback for name/bio using the obfuscated p tags near the profile link
           const actorSection = profileLink.closest('div');
           if (actorSection) {
-            const pTags = actorSection.querySelectorAll('p');
+            const pTags = actorSection.querySelectorAll('p, span');
             if (pTags.length > 0 && !authorName) authorName = pTags[0].innerText.trim();
-            // The bio is usually the next p tag. In the snippet it's the 3rd p tag if "Verified" is there.
-            // Let's look for a longer p tag which is usually the bio.
-            for (let i = 1; i < pTags.length; i++) {
+            for (let i = 0; i < pTags.length; i++) {
                 const text = pTags[i].innerText.trim();
-                if (text.length > 20 && !text.includes('followers')) {
+                if (text.length > 20 && !text.includes('followers') && !text.includes('likes this')) {
                     authorBio = text;
                     break;
                 }
-                if (i === 1 && !authorBio) authorBio = text;
             }
           }
 
-          // Image is usually in the figure inside the profile link or very close
           const imgEl = profileLink.querySelector('img') ||
             mainUpdate.querySelector('img[alt*="profile"]') ||
             mainUpdate.querySelector('img[alt*="View"]');
           if (imgEl) authorImage = imgEl.src;
         }
 
-        // Broadest fallbacks if still missing
+        // fallbacks
         if (!authorName) {
           const nameEl = mainUpdate.querySelector('.update-v2-social-actor__name') ||
             mainUpdate.querySelector('.update-components-actor__name') ||
@@ -104,8 +103,7 @@ const App = () => {
         if (!authorBio) {
           const bioEl = mainUpdate.querySelector('.update-v2-social-actor__description') ||
             mainUpdate.querySelector('.update-components-actor__description') ||
-            mainUpdate.querySelector('.f99d247a._2d22aaeb') ||
-            mainUpdate.querySelector('p[class*="_8ac8b3c9"]');
+            mainUpdate.querySelector('.f99d247a._2d22aaeb');
           if (bioEl) authorBio = bioEl.innerText.trim();
         }
 
