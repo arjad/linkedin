@@ -138,7 +138,11 @@ const App = () => {
         "messages": [
           {
             "role": "system",
-            "content": `You are a LinkedIn engagement expert. Generate a ${tone.toLowerCase()} and engaging comment for the following post. Respond with ONLY the comment text.`
+            "content": `You are a LinkedIn engagement expert. Generate a ${tone.toLowerCase()} and engaging comment for the following post. 
+            Constraints:
+            - NO hashtags.
+            - Keep it concise (maximum 2-3 sentences).
+            - Respond with ONLY the comment text.`
           },
           {
             "role": "user",
