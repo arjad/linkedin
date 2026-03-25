@@ -42,27 +42,32 @@ const App = () => {
                         postContainer.querySelector('.update-components-text');
         
         const authorNameEl = postContainer.querySelector('.update-v2-social-actor__name') || 
+                             postContainer.querySelector('.update-components-actor__name') ||
                              postContainer.querySelector('span[dir="ltr"] > span > span') ||
                              postContainer.querySelector('.f99d247a._03704b74'); 
         
         const authorBioEl = postContainer.querySelector('.update-v2-social-actor__description') ||
+                            postContainer.querySelector('.update-components-actor__description') ||
+                            postContainer.querySelector('.text-body-xsmall') ||
                             postContainer.querySelector('.f99d247a._2d22aaeb'); 
         
         const authorImgEl = postContainer.querySelector('img.update-v2-social-actor__avatar-image') ||
-                            postContainer.querySelector('img[alt*="profile"]');
+                            postContainer.querySelector('img.update-components-actor__avatar-image') ||
+                            postContainer.querySelector('img[alt*="profile"]') ||
+                            postContainer.querySelector('img[alt*="View"]');
 
         const content = textBox ? textBox.innerText : '';
-        const authorName = authorNameEl ? authorNameEl.innerText : '';
-        const authorBio = authorBioEl ? authorBioEl.innerText : '';
+        const authorName = authorNameEl ? authorNameEl.innerText.split('\n')[0].trim() : '';
+        const authorBio = authorBioEl ? authorBioEl.innerText.trim() : '';
         const authorImage = authorImgEl ? authorImgEl.src : '';
 
         if (content || authorName) {
-          setPostData({
-            content: content || postData.content,
-            authorName: authorName || postData.authorName,
-            authorBio: authorBio || postData.authorBio,
-            authorImage: authorImage || postData.authorImage
-          });
+          setPostData(prev => ({
+            content: content || prev.content,
+            authorName: authorName || prev.authorName,
+            authorBio: authorBio || prev.authorBio,
+            authorImage: authorImage || prev.authorImage
+          }));
         }
       }
     };
@@ -186,21 +191,40 @@ const App = () => {
           <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#666' }}>
             Generated Comment / Notes
           </label>
-          <button 
-            onClick={generateComment}
-            disabled={isLoading}
-            style={{
-              fontSize: '0.7rem',
-              background: isLoading ? '#ccc' : '#0a66c2',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              padding: '4px 10px',
-              cursor: isLoading ? 'default' : 'pointer'
-            }}
-          >
-            {isLoading ? 'Generating...' : 'Magic Comment ✨'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(notes);
+                alert('Copied to clipboard!');
+              }}
+              style={{
+                fontSize: '0.7rem',
+                background: '#444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '4px 10px',
+                cursor: 'pointer'
+              }}
+            >
+              Copy 📋
+            </button>
+            <button 
+              onClick={generateComment}
+              disabled={isLoading}
+              style={{
+                fontSize: '0.7rem',
+                background: isLoading ? '#ccc' : '#0a66c2',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '4px 10px',
+                cursor: isLoading ? 'default' : 'pointer'
+              }}
+            >
+              {isLoading ? 'Generating...' : 'Magic Comment ✨'}
+            </button>
+          </div>
         </div>
         <textarea 
           placeholder="Type something..."
