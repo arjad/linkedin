@@ -16,6 +16,7 @@ const App = () => {
   });
 
   const [notes, setNotes] = useState('');
+  const [tone, setTone] = useState('Professional');
   const [isLoading, setIsLoading] = useState(false);
 
   // ... handleMouseOver useEffect remains same ...
@@ -136,7 +137,7 @@ const App = () => {
         "messages": [
           {
             "role": "system",
-            "content": "You are a LinkedIn engagement expert. Generate a professional and engaging comment for the following post."
+            "content": `You are a LinkedIn engagement expert. Generate a ${tone.toLowerCase()} and engaging comment for the following post.`
           },
           {
             "role": "user",
@@ -228,7 +229,7 @@ const App = () => {
         borderRadius: '8px',
         padding: '15px',
         border: '1px solid #eee',
-        maxHeight: '400px'
+        maxHeight: '300px'
       }}>
         <div style={{ lineHeight: '1.6', fontSize: '0.95rem', whiteSpace: 'pre-wrap' }}>
           {postData.content}
@@ -236,43 +237,70 @@ const App = () => {
       </main>
 
       <div style={{ marginTop: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-          <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#666' }}>
-            Generated Comment / Notes
-          </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(notes);
-                alert('Copied to clipboard!');
-              }}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#666' }}>
+              Comment Tone
+            </label>
+            <select 
+              value={tone}
+              onChange={(e) => setTone(e.target.value)}
               style={{
-                fontSize: '0.7rem',
-                background: '#444',
-                color: 'white',
-                border: 'none',
+                fontSize: '0.8rem',
+                padding: '2px 4px',
                 borderRadius: '4px',
-                padding: '4px 10px',
+                border: '1px solid #ddd',
+                outline: 'none',
                 cursor: 'pointer'
               }}
             >
-              Copy 📋
-            </button>
-            <button
-              onClick={generateComment}
-              disabled={isLoading}
-              style={{
-                fontSize: '0.7rem',
-                background: isLoading ? '#ccc' : '#0a66c2',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '4px 10px',
-                cursor: isLoading ? 'default' : 'pointer'
-              }}
-            >
-              {isLoading ? 'Generating...' : 'Magic Comment ✨'}
-            </button>
+              <option value="Professional">Professional</option>
+              <option value="Engaging">Engaging</option>
+              <option value="Casual">Casual</option>
+              <option value="Funny">Funny</option>
+              <option value="Supportive">Supportive</option>
+              <option value="Thought-provoking">Thought-provoking</option>
+            </select>
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#666' }}>
+              AI Comment
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(notes);
+                  alert('Copied to clipboard!');
+                }}
+                style={{
+                  fontSize: '0.7rem',
+                  background: '#444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '4px 10px',
+                  cursor: 'pointer'
+                }}
+              >
+                Copy 📋
+              </button>
+              <button
+                onClick={generateComment}
+                disabled={isLoading}
+                style={{
+                  fontSize: '0.7rem',
+                  background: isLoading ? '#ccc' : '#0a66c2',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '4px 10px',
+                  cursor: isLoading ? 'default' : 'pointer'
+                }}
+              >
+                {isLoading ? 'Generating...' : 'Magic Comment ✨'}
+              </button>
+            </div>
           </div>
         </div>
         <textarea
