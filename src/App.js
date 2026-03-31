@@ -1,208 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Groq } from 'groq-sdk';
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-  dangerouslyAllowBrowser: true // Required for browser usage
-});
+import React, { useState } from 'react';
+import { theme, Icons } from './features/ui/theme.js';
+import { usePostExtractor } from './features/extractor/usePostExtractor.hook.js';
+import { useCommentGenerator } from './features/generator/useCommentGenerator.hook.js';
 
 const App = () => {
-  // ... existing state ...
-  const [postData, setPostData] = useState({
-    content: 'No post captured yet.',
-    authorName: '',
-    authorBio: '',
-    authorImage: '',
-    isLowContent: false,
-    isImagePost: false // Keep for AI prompt context but remove from UI
-  });
+  const postData = usePostExtractor();
+  const {
+    notes,
+    setNotes,
+    tone,
+    setTone,
+    wordCount,
+    setWordCount,
+    isLoading,
+    error,
+    generate
+  } = useCommentGenerator(postData);
 
-  const [notes, setNotes] = useState('');
-  const [tone, setTone] = useState('Professional');
-  const [wordCount, setWordCount] = useState('Medium');
-  const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  // ... handleMouseOver useEffect remains same ...
-  useEffect(() => {
-    const handleMouseOver = (e) => {
-      const path = e.composedPath();
-
-      // Find the "Main" container of the post (the large update block)
-      let mainUpdate = null;
-      for (const el of path) {
-        if (!el || !el.getAttribute) continue;
-
-        const isMainUpdate = (el.classList && el.classList.contains('feed-shared-update-v2')) ||
-          el.hasAttribute('data-urn') ||
-          el.hasAttribute('data-id');
-
-        if (isMainUpdate) {
-          mainUpdate = el;
-          // Keep going up to find the highest update container (in case of nested interactions)
-        }
-      }
-
-      // Fallback: search for any componentkey if no main update found
-      if (!mainUpdate) {
-        for (const el of path) {
-          if (el.getAttribute && el.getAttribute('componentkey')) {
-            mainUpdate = el.closest('.feed-shared-update-v2') || el.closest('[data-urn]') || el;
-            break;
-          }
-        }
-      }
-
-      if (mainUpdate) {
-        const textBox = mainUpdate.querySelector('[data-testid="expandable-text-box"]') ||
-          mainUpdate.querySelector('.feed-shared-update-v2__description') ||
-          mainUpdate.querySelector('.update-components-text') ||
-          mainUpdate.querySelector('.update-components-article__description');
-
-        // Find the link to the profile, excluding social actions (likes/comments)
-        const profileLinks = Array.from(mainUpdate.querySelectorAll('a[href*="/in/"], a[href*="/company/"]'));
-        // The real author is usually the first profile link in the update
-        const profileLink = profileLinks.find(link => !link.closest('.feed-shared-social-action-bar'));
-
-        let authorName = '';
-        let authorBio = '';
-        let authorImage = '';
-
-        if (profileLink) {
-          const ariaContainer = profileLink.closest('[aria-label*="Profile"]') ||
-            profileLink.closest('[aria-label*="profile"]') ||
-            profileLink.querySelector('[aria-label]');
-
-          if (ariaContainer) {
-            const label = ariaContainer.getAttribute('aria-label');
-            authorName = label.replace(/View /i, '').replace(/[\'’]s profile/i, '').replace(/Verified/i, '').split('•')[0].split(',')[0].trim();
-          }
-
-          const actorSection = profileLink.closest('div');
-          if (actorSection) {
-            const pTags = actorSection.querySelectorAll('p, span');
-            if (pTags.length > 0 && !authorName) authorName = pTags[0].innerText.trim();
-            for (let i = 0; i < pTags.length; i++) {
-              const text = pTags[i].innerText.trim();
-              if (text.length > 20 && !text.includes('followers') && !text.includes('likes this')) {
-                authorBio = text;
-                break;
-              }
-            }
-          }
-
-          const authorImgEl = profileLink.querySelector('img') ||
-            mainUpdate.querySelector('img[alt*="profile"]') ||
-            mainUpdate.querySelector('img[alt*="View"]');
-          if (authorImgEl) authorImage = authorImgEl.src;
-        }
-
-        // Search for main post images (excluding profile pictures and small icons)
-        const postImages = Array.from(mainUpdate.querySelectorAll('img')).filter(img => {
-            const rect = img.getBoundingClientRect();
-            // Post images are usually larger than avatars
-            return rect.width > 200 || img.classList.contains('update-components-image__image');
-        });
-
-        // fallbacks
-        if (!authorName) {
-          const nameEl = mainUpdate.querySelector('.update-v2-social-actor__name') ||
-            mainUpdate.querySelector('.update-components-actor__name') ||
-            mainUpdate.querySelector('.f99d247a._03704b74');
-          if (nameEl) authorName = nameEl.innerText.split('\n')[0].trim();
-        }
-
-        if (!authorBio) {
-          const bioEl = mainUpdate.querySelector('.update-v2-social-actor__description') ||
-            mainUpdate.querySelector('.update-components-actor__description') ||
-            mainUpdate.querySelector('.f99d247a._2d22aaeb');
-          if (bioEl) authorBio = bioEl.innerText.trim();
-        }
-
-        const content = textBox ? textBox.innerText : '';
-        const isLowContent = content.length > 0 && content.length < 15;
-        const isImagePost = (content.length < 50) && postImages.length > 0;
-
-        if (content || authorName || postImages.length > 0) {
-          setPostData(prev => ({
-            content: content || prev.content,
-            authorName: authorName || prev.authorName,
-            authorBio: authorBio || prev.authorBio,
-            authorImage: authorImage || prev.authorImage,
-            isLowContent: isLowContent,
-            isImagePost: isImagePost
-          }));
-        }
-      }
-    };
-
-    document.addEventListener('mouseover', handleMouseOver);
-    return () => document.removeEventListener('mouseover', handleMouseOver);
-  }, [postData]);
-
-  const generateComment = async (contentOverride = null) => {
-    const targetContent = contentOverride || postData.content;
-    if (!targetContent && !postData.isImagePost) return;
-
-    setIsLoading(true);
-    setNotes(''); // Clear previous notes
-
-    // Map word count labels to actual constraints
-    const wordCountConstraint = {
-      'Short': 'absolute maximum 15 words',
-      'Medium': 'approximately 30-40 words',
-      'Long': 'approximately 60-80 words'
-    }[wordCount];
-
-    try {
-      const chatCompletion = await groq.chat.completions.create({
-        "messages": [
-          {
-            "role": "system",
-            "content": `You are a LinkedIn engagement expert. Generate a ${tone.toLowerCase()} and engaging comment for the following post. 
-            Constraints:
-            - NO hashtags.
-            - no extra emoji
-            - Target length: ${wordCountConstraint}.
-            ${postData.isImagePost ? '- The post is primarily an image/visual, so keep the comment relevant to visual content.' : ''}
-            - Respond with ONLY the comment text.`
-          },
-          {
-            "role": "user",
-            "content": targetContent
-          }
-        ],
-        "model": "openai/gpt-oss-120b",
-        "temperature": 1,
-        "max_completion_tokens": 8192,
-        "top_p": 1,
-        "stream": true,
-      });
-
-      let fullContent = '';
-      for await (const chunk of chatCompletion) {
-        const delta = chunk.choices[0]?.delta?.content || '';
-        fullContent += delta;
-        setNotes(fullContent);
-      }
-    } catch (error) {
-      console.error('Groq Error:', error);
-      setNotes('Failed to generate comment. Check console for details.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Auto-generate when content changes (with basic protection against excessive calls)
-  useEffect(() => {
-    if (postData.content && postData.content !== 'No post captured yet.') {
-      // Prevent re-triggering if the content is the same as what we just generated for
-      const timer = setTimeout(() => {
-        generateComment();
-      }, 500); // 500ms debounce
-      return () => clearTimeout(timer);
-    }
-  }, [postData.content, tone, wordCount]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(notes);
@@ -210,224 +25,399 @@ const App = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <div style={{
+  const handleInsert = () => {
+    const editors = document.querySelectorAll('.ql-editor[contenteditable="true"]');
+    let targetEditor = document.activeElement;
+    if (!targetEditor || !targetEditor.classList.contains('ql-editor')) {
+      targetEditor = Array.from(editors).find(ed => ed.offsetParent !== null) || editors[0];
+    }
+    if (targetEditor) {
+      targetEditor.focus();
+      document.execCommand('insertText', false, notes);
+    } else {
+      alert("Please click inside a comment/reply box on LinkedIn first.");
+    }
+  };
+
+  // --- Styles ---
+  const styles = {
+    container: {
+      height: '100%',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      color: theme.colors.text,
+      background: theme.colors.background,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    header: {
+      padding: '12px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      background: theme.colors.surface,
+      borderBottom: `1px solid ${theme.colors.border}`,
+      boxShadow: theme.shadows.sm,
+      zIndex: 10,
+    },
+    titleWrapper: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    },
+    logo: {
+      background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.accent})`,
+      padding: '8px',
+      borderRadius: theme.radius.md,
+      color: '#fff',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: '0 4px 12px rgba(10, 102, 194, 0.2)',
+    },
+    title: {
+      margin: 0,
+      fontSize: '18px',
+      fontWeight: '700',
+      letterSpacing: '-0.02em',
+      color: theme.colors.text,
+    },
+    closeBtn: {
+      padding: '8px',
+      borderRadius: theme.radius.full,
+      border: 'none',
+      background: 'transparent',
+      cursor: 'pointer',
+      color: theme.colors.textMuted,
+      transition: 'all 0.2s',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    scrollArea: {
+      flex: 1,
+      overflowY: 'auto',
+      padding: '12px 16px',
       display: 'flex',
       flexDirection: 'column',
-      height: '100%',
-      color: '#333',
+      gap: '16px',
+      height: 'calc(100% - 60px)', // Adjust for header
+    },
+    card: {
+      background: theme.colors.surface,
+      borderRadius: theme.radius.md,
+      padding: '16px',
+      border: `1px solid ${theme.colors.border}`,
+      boxShadow: theme.shadows.sm,
+    },
+    authorSection: {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: '12px',
+      gap: '12px',
+    },
+    avatar: {
+      width: '40px',
+      height: '40px',
+      borderRadius: theme.radius.full,
+      objectFit: 'cover',
+      border: `2px solid ${theme.colors.border}`,
+    },
+    avatarPlaceholder: {
+      width: '40px',
+      height: '40px',
+      borderRadius: theme.radius.full,
+      background: theme.colors.border,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    badge: {
+      padding: '4px 8px',
+      borderRadius: theme.radius.sm,
+      fontSize: '10px',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      background: theme.colors.primary + '15',
+      color: theme.colors.primary,
+    },
+    contentPreview: {
+      fontSize: '14px',
+      lineHeight: '1.6',
+      color: theme.colors.text,
+      maxHeight: '120px',
+      overflow: 'hidden',
       position: 'relative',
-    }}>
-      <button
-        onClick={() => {
-          const container = document.getElementById('linkedin-sidebar-extension-root');
-          if (container) container.style.display = 'none';
-        }}
-        style={{
-          position: 'absolute',
-          top: '10px',
-          right: '10px',
-          background: 'none',
-          border: 'none',
-          fontSize: '1.2rem',
-          cursor: 'pointer',
-          color: '#666',
-          zIndex: 10
-        }}
-      >✕</button>
+      maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)',
+    },
+    controlsGrid: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '12px',
+    },
+    label: {
+      fontSize: '12px',
+      fontWeight: '600',
+      color: theme.colors.textMuted,
+      marginBottom: '6px',
+      display: 'block',
+    },
+    select: {
+      width: '100%',
+      padding: '10px 12px',
+      borderRadius: theme.radius.md,
+      border: `1px solid ${theme.colors.border}`,
+      background: theme.colors.surface,
+      fontSize: '14px',
+      color: theme.colors.text,
+      cursor: 'pointer',
+      outline: 'none',
+      appearance: 'none',
+      backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2364748b\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
+      backgroundRepeat: 'no-repeat',
+      backgroundPosition: 'right 10px center',
+      backgroundSize: '16px',
+    },
+    generateBtn: {
+      width: '100%',
+      padding: '10px 14px',
+      borderRadius: theme.radius.md,
+      border: 'none',
+      background: `linear-gradient(135deg, ${theme.colors.accent}, ${theme.colors.primary})`,
+      color: '#fff',
+      fontSize: '13px',
+      fontWeight: '600',
+      cursor: isLoading ? 'default' : 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)',
+      transition: 'transform 0.2s, opacity 0.2s',
+      opacity: isLoading ? 0.7 : 1,
+    },
+    outputContainer: {
+      position: 'relative',
+      marginTop: 'auto',
+      paddingBottom: '20px'
+    },
+    textarea: {
+      width: '100%',
+      minHeight: '240px',
+      padding: '16px',
+      borderRadius: theme.radius.md,
+      border: `2px solid ${theme.colors.border}`,
+      background: theme.colors.surface,
+      fontSize: '15px',
+      lineHeight: '1.6',
+      resize: 'none',
+      outline: 'none',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s',
+      fontFamily: 'inherit',
+    },
+    actionTray: {
+      display: 'flex',
+      gap: '8px',
+      marginTop: '12px',
+    },
+    iconBtn: {
+      flex: 1,
+      padding: '10px 16px',
+      borderRadius: theme.radius.md,
+      border: `1px solid ${theme.colors.border}`,
+      background: theme.colors.surface,
+      color: theme.colors.text,
+      fontSize: '13px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      transition: 'all 0.2s',
+    },
+    primaryIconBtn: {
+      flex: 1.5,
+      background: theme.colors.primary,
+      color: '#fff',
+      border: 'none',
+    },
+    footerStatus: {
+      padding: '12px',
+      textAlign: 'center',
+      fontSize: '11px',
+      color: theme.colors.textMuted,
+      background: theme.colors.surface,
+      borderTop: `1px solid ${theme.colors.border}`,
+    }
+  };
 
-      <header style={{
-        padding: '0 0 15px 0',
-        borderBottom: '1px solid #ddd',
-        marginBottom: '20px',
-      }}>
-        <h1 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, color: '#0a66c2' }}>LinkedIn Reader</h1>
+  return (
+    <div style={styles.container}>
+      <header style={styles.header}>
+        <div style={styles.titleWrapper}>
+          <img 
+            src={chrome.runtime.getURL('assets/logo2.png')} 
+            alt="Comment AI" 
+            style={{ height: '24px', width: 'auto', objectFit: 'contain' }} 
+          />
+        </div>
+        <button
+          onClick={() => {
+            const container = document.getElementById('linkedin-sidebar-extension-root');
+            if (container) container.style.display = 'none';
+          }}
+          style={styles.closeBtn}
+          onMouseOver={(e) => (e.currentTarget.style.background = theme.colors.border)}
+          onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          <Icons.Close />
+        </button>
       </header>
 
-      {postData.authorName && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          marginBottom: '15px',
-          padding: '10px',
-          background: 'rgba(10, 102, 194, 0.05)',
-          borderRadius: '8px',
-        }}>
-          {postData.authorImage && (
-            <img
-              src={postData.authorImage}
-              style={{ width: '48px', height: '48px', borderRadius: '50%', marginRight: '12px', border: '2px solid #fff' }}
-              alt="Author"
-            />
-          )}
-          <div>
-            <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{postData.authorName}</div>
-            <div style={{ fontSize: '0.8rem', color: '#666', lineHeight: '1.2' }}>{postData.authorBio}</div>
+      <div style={styles.scrollArea}>
+        {/* Post Preview Card */}
+        <div style={styles.card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <div style={styles.authorSection}>
+              {postData.authorImage ? (
+                <img src={postData.authorImage} style={styles.avatar} alt="Author" />
+              ) : (
+                <div style={styles.avatarPlaceholder}>
+                  <Icons.User />
+                </div>
+              )}
+              <div>
+                <div style={{ fontWeight: '700', fontSize: '14px' }}>{postData.authorName || 'Capturing...'}</div>
+                <div style={{ fontSize: '11px', color: theme.colors.textMuted, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {postData.authorBio || 'Target Bio'}
+                </div>
+              </div>
+            </div>
+            {postData.content !== 'Hover over a post or comment to capture...' && (
+              <span style={styles.badge}>{postData.isComment ? 'Reply' : 'Post'}</span>
+            )}
+          </div>
+
+          <div style={styles.contentPreview}>
+            {postData.content}
           </div>
         </div>
-      )}
 
-      <main style={{
-        flex: 1,
-        overflowY: 'auto',
-        background: 'rgba(255, 255, 255, 0.5)',
-        borderRadius: '8px',
-        padding: '15px',
-        border: '1px solid #eee',
-        maxHeight: '300px',
-        position: 'relative'
-      }}>
-        <div style={{ lineHeight: '1.6', fontSize: '0.95rem', whiteSpace: 'pre-wrap' }}>
-          {postData.content}
-        </div>
-      </main>
-
-      <div style={{ marginTop: '20px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '15px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0a66c2' }}>
-              Comment Tone
-            </label>
+        {/* Configuration */}
+        <div style={styles.controlsGrid}>
+          <div>
+            <label style={styles.label}>Tone</label>
             <select
+              style={styles.select}
               value={tone}
               onChange={(e) => setTone(e.target.value)}
-              style={{
-                fontSize: '1rem',
-                padding: '4px 8px',
-                borderRadius: '6px',
-                border: '1px solid #0a66c2',
-                outline: 'none',
-                cursor: 'pointer',
-                background: '#fff',
-                color: '#0a66c2',
-                fontWeight: 'bold'
-              }}
             >
-              <option value="Professional">Professional</option>
-              <option value="Engaging">Engaging</option>
-              <option value="Casual">Casual</option>
-              <option value="Funny">Funny</option>
-              <option value="Supportive">Supportive</option>
-              <option value="Thought-provoking">Thought-provoking</option>
+              <option>Professional</option>
+              <option>Engaging</option>
+              <option>Casual</option>
+              <option>Funny</option>
+              <option>Supportive</option>
+              <option>Thought-provoking</option>
             </select>
           </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0a66c2' }}>
-              Word Count
-            </label>
+          <div>
+            <label style={styles.label}>Length</label>
             <select
+              style={styles.select}
               value={wordCount}
               onChange={(e) => setWordCount(e.target.value)}
-              style={{
-                fontSize: '1rem',
-                padding: '4px 8px',
-                borderRadius: '6px',
-                border: '1px solid #0a66c2',
-                outline: 'none',
-                cursor: 'pointer',
-                background: '#fff',
-                color: '#0a66c2',
-                fontWeight: 'bold'
-              }}
             >
-              <option value="Short">Short (~15 words)</option>
-              <option value="Medium">Medium (~40 words)</option>
-              <option value="Long">Long (~80 words)</option>
+              <option value="Short">Short</option>
+              <option value="Medium">Medium</option>
+              <option value="Long">Long</option>
             </select>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
-            <label style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#666' }}>
-              AI Generated Comment
-            </label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={handleCopy}
-                style={{
-                  fontSize: '0.8rem',
-                  background: copied ? '#059669' : '#444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '5px 12px',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-                onMouseOver={(e) => !copied && (e.target.style.background = '#000')}
-                onMouseOut={(e) => !copied && (e.target.style.background = '#444')}
-              >
-                {copied ? 'Copied! ✅' : 'Copy 📋'}
-              </button>
-              <button
-                onClick={() => generateComment()}
-                disabled={isLoading}
-                style={{
-                  fontSize: '0.8rem',
-                  background: isLoading ? '#ccc' : '#0a66c2',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '5px 12px',
-                  cursor: isLoading ? 'default' : 'pointer'
-                }}
-              >
-                {isLoading ? 'Generating..' : 'Regenerate ✨'}
-              </button>
-            </div>
           </div>
         </div>
 
-        {postData.isLowContent && (
-          <div style={{
-            color: '#c2410a',
-            fontSize: '0.75rem',
-            marginBottom: '8px',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}>
-            ⚠️ Not enough words to generate accurate comment form
-          </div>
-        )}
+        {/* Generate Button */}
+        <button
+          style={styles.generateBtn}
+          onClick={() => generate()}
+          disabled={isLoading}
+          onMouseOver={(e) => !isLoading && (e.currentTarget.style.transform = 'translateY(-1px)')}
+          onMouseOut={(e) => !isLoading && (e.currentTarget.style.transform = 'translateY(0)')}
+        >
+          {isLoading ? (
+            <Icons.Refresh size={20} className="spin" />
+          ) : (
+            <Icons.Sparkles size={18} color="#fff" />
+          )}
+          {isLoading ? 'Generating Magic...' : 'Generate New Variation'}
+        </button>
 
-        <textarea
-          placeholder="AI comment will appear here automatically..."
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          style={{
-            width: '100%',
-            height: '150px',
-            borderRadius: '8px',
-            border: '2px solid rgba(10, 102, 194, 0.2)',
-            padding: '12px',
-            fontSize: '1rem',
-            fontFamily: 'inherit',
-            resize: 'none',
-            boxSizing: 'border-box',
-            outline: 'none',
-            background: 'white',
-            color: '#000',
-            lineHeight: '1.5',
-            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)'
-          }}
-        />
+        {/* Output Area */}
+        <div style={styles.outputContainer}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <label style={styles.label}>AI Result</label>
+            {error && <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: '500' }}>Error: {error}</span>}
+          </div>
+          <textarea
+            style={{
+              ...styles.textarea,
+              borderColor: isLoading ? theme.colors.accent + '30' : theme.colors.border
+            }}
+            placeholder="Your AI-powered insight will appear here..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+
+          <div style={styles.actionTray}>
+            <button
+              style={styles.iconBtn}
+              onClick={handleCopy}
+              onMouseOver={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+              onMouseOut={(e) => (e.currentTarget.style.background = '#fff')}
+            >
+              <Icons.Copy color={copied ? theme.colors.success : theme.colors.text} />
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+            <button
+              style={{ ...styles.iconBtn, ...styles.primaryIconBtn, opacity: 0.6, cursor: 'not-allowed' }}
+              onClick={() => { }} // Disabled for non-premium
+              title="Only for premium members"
+            >
+              <Icons.PenLine color="#fff" />
+              Insert to LinkedIn
+            </button>
+          </div>
+        </div>
       </div>
 
-      <footer style={{
-        marginTop: '20px',
-        paddingTop: '15px',
-        borderTop: '1px solid #ddd',
-        textAlign: 'center',
-        fontSize: '0.7rem',
-        color: '#999'
-      }}>
-        LinkedIn Reader v1.1
+      <footer style={styles.footerStatus}>
+        LinkedIn AI Assistant • v2.2 Premium
       </footer>
+
+      <style>
+        {`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .spin {
+            animation: spin 1s linear infinite;
+          }
+          ::-webkit-scrollbar {
+            width: 6px;
+          }
+          ::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          ::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+          }
+          ::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+          }
+        `}
+      </style>
     </div>
   );
 };

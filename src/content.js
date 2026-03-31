@@ -22,15 +22,15 @@ chrome.runtime.onMessage.addListener((request) => {
 if (!document.getElementById(id)) {
   const container = document.createElement('div');
   container.id = id;
-  
+
   // Create shadow DOM
   const shadowRoot = container.attachShadow({ mode: 'open' });
-  
+
   // Create a mounting point for React
   const mountPoint = document.createElement('div');
   mountPoint.id = 'sidebar-mount';
   shadowRoot.appendChild(mountPoint);
-  
+
   // Inject style into shadow DOM
   const style = document.createElement('style');
   style.textContent = `
@@ -45,7 +45,6 @@ if (!document.getElementById(id)) {
       box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
       z-index: 999999;
       border-left: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 20px;
       overflow-y: auto;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       box-sizing: border-box;
@@ -53,7 +52,7 @@ if (!document.getElementById(id)) {
     }
   `;
   shadowRoot.appendChild(style);
-  
+
   container.style.display = 'none'; // Initially hidden
   document.body.appendChild(container);
 
