@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { theme, Icons } from './features/ui/theme.js';
 import { usePostExtractor } from './features/extractor/usePostExtractor.hook.js';
 import { useCommentGenerator } from './features/generator/useCommentGenerator.hook.js';
+import { AI_MODELS } from './features/generator/models.js';
 
 const App = () => {
   const postData = usePostExtractor();
@@ -12,12 +13,16 @@ const App = () => {
     setTone,
     wordCount,
     setWordCount,
+    selectedModel,
+    setSelectedModel,
     isLoading,
     error,
     generate
   } = useCommentGenerator(postData);
 
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState('main');
+  const [activeSettingsTab, setActiveSettingsTab] = useState('about');
 
   const handleCopy = () => {
     navigator.clipboard.writeText(notes);
@@ -62,33 +67,45 @@ const App = () => {
     titleWrapper: {
       display: 'flex',
       alignItems: 'center',
-      gap: '12px'
+      gap: '8px'
     },
-    logo: {
-      background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.accent})`,
-      padding: '8px',
-      borderRadius: theme.radius.md,
-      color: '#fff',
+    headerTitle: {
+      fontSize: '18px',
+      fontWeight: '800',
+      letterSpacing: '-0.03em',
+      color: theme.colors.text,
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: '0 4px 12px rgba(10, 102, 194, 0.2)',
+      gap: '4px'
     },
-    title: {
-      margin: 0,
-      fontSize: '18px',
-      fontWeight: '700',
-      letterSpacing: '-0.02em',
-      color: theme.colors.text,
+    actionGroup: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     },
-    closeBtn: {
-      padding: '8px',
+    iconBtnSmall: {
+      padding: '6px',
       borderRadius: theme.radius.full,
       border: 'none',
       background: 'transparent',
       cursor: 'pointer',
       color: theme.colors.textMuted,
       transition: 'all 0.2s',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeBtnTop: {
+      position: 'absolute',
+      top: '4px',
+      right: '4px',
+      zIndex: 100,
+      padding: '4px',
+      background: 'rgba(255,255,255,0.8)',
+      borderRadius: '50%',
+      border: 'none',
+      cursor: 'pointer',
+      color: theme.colors.textMuted,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -100,7 +117,7 @@ const App = () => {
       display: 'flex',
       flexDirection: 'column',
       gap: '16px',
-      height: 'calc(100% - 60px)', // Adjust for header
+      height: 'calc(100% - 60px)',
     },
     card: {
       background: theme.colors.surface,
@@ -108,47 +125,6 @@ const App = () => {
       padding: '16px',
       border: `1px solid ${theme.colors.border}`,
       boxShadow: theme.shadows.sm,
-    },
-    authorSection: {
-      display: 'flex',
-      alignItems: 'center',
-      marginBottom: '12px',
-      gap: '12px',
-    },
-    avatar: {
-      width: '40px',
-      height: '40px',
-      borderRadius: theme.radius.full,
-      objectFit: 'cover',
-      border: `2px solid ${theme.colors.border}`,
-    },
-    avatarPlaceholder: {
-      width: '40px',
-      height: '40px',
-      borderRadius: theme.radius.full,
-      background: theme.colors.border,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    badge: {
-      padding: '4px 8px',
-      borderRadius: theme.radius.sm,
-      fontSize: '10px',
-      fontWeight: '700',
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
-      background: theme.colors.primary + '15',
-      color: theme.colors.primary,
-    },
-    contentPreview: {
-      fontSize: '14px',
-      lineHeight: '1.6',
-      color: theme.colors.text,
-      maxHeight: '120px',
-      overflow: 'hidden',
-      position: 'relative',
-      maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)',
     },
     controlsGrid: {
       display: 'grid',
@@ -177,6 +153,16 @@ const App = () => {
       backgroundRepeat: 'no-repeat',
       backgroundPosition: 'right 10px center',
       backgroundSize: '16px',
+    },
+    agentSelect: {
+      padding: '4px 24px 4px 8px',
+      fontSize: '11px',
+      height: '24px',
+      width: 'auto',
+      minWidth: '100px',
+      borderRadius: theme.radius.sm,
+      backgroundPosition: 'right 6px center',
+      backgroundSize: '12px',
     },
     generateBtn: {
       width: '100%',
@@ -243,181 +229,373 @@ const App = () => {
       color: '#fff',
       border: 'none',
     },
-    footerStatus: {
-      padding: '12px',
-      textAlign: 'center',
-      fontSize: '11px',
-      color: theme.colors.textMuted,
+    settingsSection: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '20px',
+    },
+    settingsGroup: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+    },
+    settingsTitle: {
+      fontSize: '14px',
+      fontWeight: '700',
+      color: theme.colors.primary,
+      borderBottom: `2px solid ${theme.colors.primary}20`,
+      paddingBottom: '4px',
+      marginBottom: '8px',
+    },
+    settingsText: {
+      fontSize: '13px',
+      lineHeight: '1.6',
+      color: theme.colors.text,
+    },
+    statusBadge: {
+      display: 'inline-block',
+      padding: '2px 6px',
+      borderRadius: '4px',
+      fontSize: '10px',
+      fontWeight: '700',
+      background: theme.colors.success + '20',
+      color: theme.colors.success,
+      marginLeft: '8px',
+    },
+    pricingCard: {
+      padding: '16px',
+      borderRadius: theme.radius.md,
+      border: `1px solid ${theme.colors.border}`,
       background: theme.colors.surface,
-      borderTop: `1px solid ${theme.colors.border}`,
-    }
+      marginBottom: '16px',
+      boxShadow: theme.shadows.sm,
+    },
+    premiumCard: {
+      padding: '16px',
+      borderRadius: theme.radius.md,
+      border: `1px solid ${theme.colors.accent}30`,
+      background: `linear-gradient(160deg, ${theme.colors.surface} 0%, ${theme.colors.accent}05 100%)`,
+      position: 'relative',
+    },
+    settingsTabs: {
+      display: 'flex',
+      gap: '4px',
+      marginBottom: '20px',
+      background: theme.colors.primary + '08',
+      padding: '4px',
+      borderRadius: theme.radius.sm,
+      border: `1px solid ${theme.colors.border}`,
+    },
+    settingsTab: (active) => ({
+      flex: 1,
+      padding: '8px 4px',
+      fontSize: '12px',
+      fontWeight: '700',
+      textAlign: 'center',
+      cursor: 'pointer',
+      borderRadius: '4px',
+      transition: 'all 0.2s',
+      color: active ? '#fff' : theme.colors.textMuted,
+      background: active ? theme.colors.primary : 'transparent',
+      boxShadow: active ? '0 2px 4px rgba(10, 102, 194, 0.2)' : 'none',
+    }),
   };
+
+  const SettingsView = () => (
+    <div style={styles.settingsSection}>
+      {/* Sub Tabs */}
+      <div style={styles.settingsTabs}>
+        {['about', 'pricing', 'contact', 'privacy'].map((tab) => (
+          <div
+            key={tab}
+            style={styles.settingsTab(activeSettingsTab === tab)}
+            onClick={() => setActiveSettingsTab(tab)}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </div>
+        ))}
+      </div>
+
+      {activeSettingsTab === 'about' && (
+        <div style={styles.settingsGroup}>
+          <div style={styles.settingsTitle}>About Assistant</div>
+          <div style={styles.settingsText}>
+            LinkedIn AI Assistant is designed to help you engage more effectively with your network using advanced AI models. It captures post context automatically and suggests relevant, professional replies based on your preferred tone.
+          </div>
+          <div style={{ ...styles.settingsText, marginTop: '12px', fontWeight: '600' }}>
+            Contributors:
+            <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+              <li>Arjad (Lead Developer)</li>
+              <li>Groq AI Team</li>
+              <li>Open Source Community</li>
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {activeSettingsTab === 'privacy' && (
+        <div style={styles.settingsGroup}>
+          <div style={styles.settingsTitle}>Privacy Policy</div>
+          <div style={styles.settingsText}>
+            Your data stay yours. We collect post content temporarily to generate replies. We do not store your LinkedIn credentials or personal messages on our servers.
+            <br /><br />
+            No data is shared with third parties except for the AI processing you explicitly trigger.
+          </div>
+        </div>
+      )}
+
+      {activeSettingsTab === 'pricing' && (
+        <div style={styles.settingsGroup}>
+          <div style={styles.settingsTitle}>Select Plan</div>
+
+          {/* Free Tier */}
+          <div style={styles.pricingCard}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ fontWeight: '700', fontSize: '15px' }}>Free Tier</span>
+              <span style={{ ...styles.statusBadge, marginLeft: 0 }}>Active</span>
+            </div>
+            <div style={{ ...styles.settingsText, fontSize: '12px', color: theme.colors.textMuted }}>
+              Perfect for getting started with AI-powered engagement.
+              <ul style={{ margin: '8px 0', paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <li>Standard AI models (Groq, OpenRouter)</li>
+                <li>Context-aware post & comment replies</li>
+                <li>Basic tone & length controls</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Premium Tier */}
+          <div style={styles.premiumCard}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ fontWeight: '700', fontSize: '15px', color: theme.colors.accent }}>Premium</span>
+              <span style={{
+                padding: '2px 8px',
+                borderRadius: '4px',
+                fontSize: '9px',
+                fontWeight: '800',
+                background: theme.colors.accent,
+                color: '#fff',
+                textTransform: 'uppercase'
+              }}>
+                Coming Soon
+              </span>
+            </div>
+            <div style={{ ...styles.settingsText, fontSize: '12px', color: theme.colors.text }}>
+              Unlock the full power of professional LinkedIn automation.
+              <ul style={{ margin: '8px 0', paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <li>✅ <b>Interaction History:</b> Keep history of previous comments & DMs per person per interaction</li>
+                <li>💬 <b>DM Assistant:</b> Automatically generate smart replies for your LinkedIn DMs</li>
+                <li>🚀 <b>Advanced Models:</b> Access to GPT-4o & Claude 3.5 Sonnet</li>
+                <li>🎭 <b>Custom Personas:</b> Save and reuse your own unique writing styles</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeSettingsTab === 'contact' && (
+        <div style={styles.settingsGroup}>
+          <div style={styles.settingsTitle}>Contact Us</div>
+          <div style={styles.settingsText}>
+            For feedback, support, or partnership inquiries, reach out to us:
+            <br /><br />
+            <a
+              href="mailto:devarjad@gmail.com"
+              style={{
+                color: theme.colors.primary,
+                fontWeight: '700',
+                textDecoration: 'none',
+                background: theme.colors.primary + '10',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                display: 'inline-block'
+              }}
+            >
+              devarjad@gmail.com
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div style={styles.container}>
+      {/* Small Absolute Close Button */}
+      <button
+        style={styles.closeBtnTop}
+        onClick={() => {
+          const container = document.getElementById('linkedin-sidebar-extension-root');
+          if (container) container.style.display = 'none';
+        }}
+      >
+        <Icons.Close size={12} />
+      </button>
+
       <header style={styles.header}>
         <div style={styles.titleWrapper}>
-          <img 
-            src={chrome.runtime.getURL('assets/logo2.png')} 
-            alt="Comment AI" 
-            style={{ height: '24px', width: 'auto', objectFit: 'contain' }} 
-          />
+          {activeTab === 'settings' ? (
+            <>
+              <span style={styles.headerTitle}>
+                Comme
+              </span>
+              <img
+                src={chrome.runtime.getURL('assets/logo1.png')}
+                alt="Comment AI"
+                style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
+              />
+            </>
+          ) : (
+            <>
+              <span style={styles.headerTitle}>
+                Comme
+              </span>
+              <img
+                src={chrome.runtime.getURL('assets/logo1.png')}
+                alt="Comment AI"
+                style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
+              />
+            </>
+          )}
         </div>
-        <button
-          onClick={() => {
-            const container = document.getElementById('linkedin-sidebar-extension-root');
-            if (container) container.style.display = 'none';
-          }}
-          style={styles.closeBtn}
-          onMouseOver={(e) => (e.currentTarget.style.background = theme.colors.border)}
-          onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          <Icons.Close />
-        </button>
+        <div style={styles.actionGroup}>
+          {activeTab === 'main' ? (
+            <>
+              <button
+                style={styles.iconBtnSmall}
+                onClick={() => setActiveTab('settings')}
+                onMouseOver={(e) => (e.currentTarget.style.background = theme.colors.border)}
+                onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+                title="Settings"
+              >
+                <Icons.Settings size={20} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                style={styles.iconBtnSmall}
+                onClick={() => setActiveTab('main')}
+                title="Go Back"
+              >
+                <Icons.ChevronLeft size={18} />
+              </button>
+              <span style={{ fontSize: '14px', fontWeight: '700' }}>Settings</span>
+
+            </>
+          )}
+        </div>
       </header>
 
       <div style={styles.scrollArea}>
-        {/* Post Preview Card */}
-        <div style={styles.card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-            <div style={styles.authorSection}>
-              {postData.authorImage ? (
-                <img src={postData.authorImage} style={styles.avatar} alt="Author" />
-              ) : (
-                <div style={styles.avatarPlaceholder}>
-                  <Icons.User />
+        {activeTab === 'main' ? (
+          <>
+            {/* Post Preview Card */}
+            <div style={styles.card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {postData.authorImage ? (
+                    <img src={postData.authorImage} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} alt="Author" />
+                  ) : (
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: theme.colors.border, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icons.User />
+                    </div>
+                  )}
+                  <div>
+                    <div style={{ fontWeight: '700', fontSize: '14px' }}>{postData.authorName || 'Capturing...'}</div>
+                    <div style={{ fontSize: '11px', color: theme.colors.textMuted, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {postData.authorBio || 'Target Bio'}
+                    </div>
+                  </div>
                 </div>
-              )}
-              <div>
-                <div style={{ fontWeight: '700', fontSize: '14px' }}>{postData.authorName || 'Capturing...'}</div>
-                <div style={{ fontSize: '11px', color: theme.colors.textMuted, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {postData.authorBio || 'Target Bio'}
-                </div>
+                {postData.content !== 'Hover over a post or comment to capture...' && (
+                  <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: '700', background: theme.colors.primary + '15', color: theme.colors.primary }}>
+                    {postData.isComment ? 'Reply' : 'Post'}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '14px', lineHeight: '1.6', maxHeight: '120px', overflow: 'hidden', maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)' }}>
+                {postData.content}
               </div>
             </div>
-            {postData.content !== 'Hover over a post or comment to capture...' && (
-              <span style={styles.badge}>{postData.isComment ? 'Reply' : 'Post'}</span>
-            )}
-          </div>
 
-          <div style={styles.contentPreview}>
-            {postData.content}
-          </div>
-        </div>
+            {/* Configuration */}
+            <div style={styles.controlsGrid}>
+              <div>
+                <label style={styles.label}>Tone</label>
+                <select style={styles.select} value={tone} onChange={(e) => setTone(e.target.value)}>
+                  <option>Professional</option>
+                  <option>Engaging</option>
+                  <option>Casual</option>
+                  <option>Funny</option>
+                  <option>Supportive</option>
+                </select>
+              </div>
+              <div>
+                <label style={styles.label}>Length</label>
+                <select style={styles.select} value={wordCount} onChange={(e) => setWordCount(e.target.value)}>
+                  <option value="Short">Short</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Long">Long</option>
+                </select>
+              </div>
+            </div>
 
-        {/* Configuration */}
-        <div style={styles.controlsGrid}>
-          <div>
-            <label style={styles.label}>Tone</label>
-            <select
-              style={styles.select}
-              value={tone}
-              onChange={(e) => setTone(e.target.value)}
-            >
-              <option>Professional</option>
-              <option>Engaging</option>
-              <option>Casual</option>
-              <option>Funny</option>
-              <option>Supportive</option>
-              <option>Thought-provoking</option>
-            </select>
-          </div>
-          <div>
-            <label style={styles.label}>Length</label>
-            <select
-              style={styles.select}
-              value={wordCount}
-              onChange={(e) => setWordCount(e.target.value)}
-            >
-              <option value="Short">Short</option>
-              <option value="Medium">Medium</option>
-              <option value="Long">Long</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Generate Button */}
-        <button
-          style={styles.generateBtn}
-          onClick={() => generate()}
-          disabled={isLoading}
-          onMouseOver={(e) => !isLoading && (e.currentTarget.style.transform = 'translateY(-1px)')}
-          onMouseOut={(e) => !isLoading && (e.currentTarget.style.transform = 'translateY(0)')}
-        >
-          {isLoading ? (
-            <Icons.Refresh size={20} className="spin" />
-          ) : (
-            <Icons.Sparkles size={18} color="#fff" />
-          )}
-          {isLoading ? 'Generating Magic...' : 'Generate New Variation'}
-        </button>
-
-        {/* Output Area */}
-        <div style={styles.outputContainer}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-            <label style={styles.label}>AI Result</label>
-            {error && <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: '500' }}>Error: {error}</span>}
-          </div>
-          <textarea
-            style={{
-              ...styles.textarea,
-              borderColor: isLoading ? theme.colors.accent + '30' : theme.colors.border
-            }}
-            placeholder="Your AI-powered insight will appear here..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-
-          <div style={styles.actionTray}>
-            <button
-              style={styles.iconBtn}
-              onClick={handleCopy}
-              onMouseOver={(e) => (e.currentTarget.style.background = '#f1f5f9')}
-              onMouseOut={(e) => (e.currentTarget.style.background = '#fff')}
-            >
-              <Icons.Copy color={copied ? theme.colors.success : theme.colors.text} />
-              {copied ? 'Copied!' : 'Copy'}
+            {/* Generate Button */}
+            <button style={styles.generateBtn} onClick={() => generate()} disabled={isLoading}>
+              {isLoading ? <Icons.Refresh size={20} className="spin" /> : <Icons.Sparkles size={18} color="#fff" />}
+              {isLoading ? 'Generating Magic...' : 'Generate New Variation'}
             </button>
-            <button
-              style={{ ...styles.iconBtn, ...styles.primaryIconBtn, opacity: 0.6, cursor: 'not-allowed' }}
-              onClick={() => { }} // Disabled for non-premium
-              title="Only for premium members"
-            >
-              <Icons.PenLine color="#fff" />
-              Insert to LinkedIn
-            </button>
-          </div>
-        </div>
+
+            {/* Output Area */}
+            <div style={styles.outputContainer}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ ...styles.label, marginBottom: 0 }}>AI Result</label>
+                <select
+                  style={{ ...styles.select, ...styles.agentSelect }}
+                  value={selectedModel.id}
+                  onChange={(e) => setSelectedModel(AI_MODELS.find(m => m.id === e.target.value))}
+                >
+                  {AI_MODELS.map(model => (
+                    <option key={model.id} value={model.id}>{model.name.split(' (')[0]}</option>
+                  ))}
+                </select>
+              </div>
+              <textarea
+                style={{ ...styles.textarea, borderColor: isLoading ? theme.colors.accent + '30' : theme.colors.border }}
+                placeholder="Your AI-powered insight will appear here..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+              <div style={styles.actionTray}>
+                <button style={styles.iconBtn} onClick={handleCopy}>
+                  <Icons.Copy color={copied ? theme.colors.success : theme.colors.text} />
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+                <button style={{ ...styles.iconBtn, ...styles.primaryIconBtn, opacity: 0.6, cursor: 'not-allowed' }} title="Premium Feature">
+                  <Icons.PenLine color="#fff" />
+                  Insert to LinkedIn
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <SettingsView />
+        )}
       </div>
 
-      <footer style={styles.footerStatus}>
-        LinkedIn AI Assistant • v2.2 Premium
+      <footer style={{ padding: '12px', textAlign: 'center', fontSize: '11px', color: theme.colors.textMuted, background: theme.colors.surface, borderTop: `1px solid ${theme.colors.border}` }}>
+        LinkedIn AI Assistant • v2.5 Premium
       </footer>
 
-      <style>
-        {`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          .spin {
-            animation: spin 1s linear infinite;
-          }
-          ::-webkit-scrollbar {
-            width: 6px;
-          }
-          ::-webkit-scrollbar-track {
-            background: transparent;
-          }
-          ::-webkit-scrollbar-thumb {
-            background: #e2e8f0;
-            border-radius: 10px;
-          }
-          ::-webkit-scrollbar-thumb:hover {
-            background: #cbd5e1;
-          }
-        `}
-      </style>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spin { animation: spin 1s linear infinite; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+      `}</style>
     </div>
   );
 };

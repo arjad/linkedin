@@ -5,48 +5,76 @@ export const groq = new Groq({
   dangerouslyAllowBrowser: true 
 });
 
-export const generateGroqComment = async (postData, tone, wordCount, onChunk) => {
-  const wordCountConstraint = {
-    'Short': 'absolute maximum 15 words',
-    'Medium': 'approximately 30-40 words',
-    'Long': 'approximately 60-80 words'
-  }[wordCount];
+import { buildPrompts } from './promptBuilder.js';
 
+export const generateAIComment = async (postData, tone, wordCount, selectedModel, onChunk) => {
+  const { systemPrompt, userPrompt } = buildPrompts(postData, tone, wordCount);
+
+  if (selectedModel.provider === 'groq') {
+    return handleGroqRequest(systemPrompt, userPrompt, selectedModel.modelId, onChunk);
+  } else if (selectedModel.provider === 'openrouter') {
+    return handleOpenRouterRequest(systemPrompt, userPrompt, selectedModel.modelId, onChunk);
+  } else if (selectedModel.provider === 'google') {
+    return handleGoogleRequest(systemPrompt, userPrompt, selectedModel.modelId, onChunk);
+  } else {
+    throw new Error(`Provider ${selectedModel.provider} is not supported yet.`);
+  }
+};
+
+const handleGoogleRequest = async (systemPrompt, userPrompt, modelId, onChunk) => {
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?key=${process.env.GOOGLE_API_KEY}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        contents: [
+          { role: "user", parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || "Google Gemini error");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullContent = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value);
+      const parts = chunk.split('}\n{'); 
+      for (let part of parts) {
+        if (!part.startsWith('{')) part = '{' + part;
+        if (!part.endsWith('}')) part = part + '}';
+        try {
+          const data = JSON.parse(part);
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          fullContent += text;
+          onChunk(fullContent);
+        } catch (e) {}
+      }
+    }
+    return fullContent;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const handleGroqRequest = async (systemPrompt, userPrompt, modelId, onChunk) => {
   try {
     const chatCompletion = await groq.chat.completions.create({
       "messages": [
-        {
-          "role": "system",
-          "content": `You are a LinkedIn engagement expert. Your goal is to write a ${tone.toLowerCase()} reply.
-          
-          ${postData.isComment 
-            ? `You are REPLYING to a comment made by ${postData.authorName}.
-               Context: This comment was left on a post by ${postData.postAuthorName}. 
-               Post Author: ${postData.postAuthorName}
-               Post Content: "${postData.parentPostContent.substring(0, 300)}..."
-               
-               IMPORTANT PERSPECTIVE:
-               - If the comment you are replying to is praising or encouraging "${postData.postAuthorName}", do NOT say "Thank you" as if YOU are the post author (unless the user explicitly says they are the author).
-               - Instead, agree with the commenter or add to the conversation as a community member.
-               - If the comment is direct, address the points made by ${postData.authorName}.`
-            : `You are COMMENTING on a post by ${postData.authorName}.`
-          }
-          
-          Constraints:
-          - NO hashtags.
-          - no extra emoji
-          - Target length: ${wordCountConstraint}.
-          ${postData.isImagePost ? '- The post is primarily an image/visual, so keep the comment relevant to visual content.' : ''}
-          - Respond with ONLY the text.`
-        },
-        {
-          "role": "user",
-          "content": postData.isComment 
-                     ? `Comment to reply to (by ${postData.authorName}): ${postData.content}`
-                     : postData.content
-        }
+        { "role": "system", "content": systemPrompt },
+        { "role": "user", "content": userPrompt }
       ],
-      "model": "openai/gpt-oss-120b",
+      "model": modelId,
       "temperature": 0.8,
       "max_completion_tokens": 1024,
       "stream": true,
@@ -60,38 +88,88 @@ export const generateGroqComment = async (postData, tone, wordCount, onChunk) =>
     }
     return fullContent;
   } catch (error) {
-    console.error('Groq Error:', error);
-    let message = 'An unexpected error occurred.';
-    
-    // Try to extract from standard response data
-    if (error.response?.data?.error?.message) {
-      message = error.response.data.error.message;
-    } 
-    // Handle case where message is a stringified JSON (common in some SDK errors)
-    else if (error.message) {
-      const jsonMatch = error.message.match(/\{.*\}/);
-      if (jsonMatch) {
-        try {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed.error?.code === 'rate_limit_exceeded' || parsed.code === 'rate_limit_exceeded') {
-            message = 'Rate limit exceeds for today';
-          } else if (parsed.error?.message) {
-            message = parsed.error.message;
-          } else if (parsed.message) {
-            message = parsed.message;
-          } else {
-            message = error.message;
-          }
-        } catch (e) {
-          message = error.message;
+    throw formatError(error);
+  }
+};
+
+const handleOpenRouterRequest = async (systemPrompt, userPrompt, modelId, onChunk) => {
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        "model": modelId,
+        "messages": [
+          { "role": "system", "content": systemPrompt },
+          { "role": "user", "content": userPrompt }
+        ],
+        "stream": true
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || "OpenRouter error");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullContent = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n').filter(line => line.trim() !== '');
+      
+      for (const line of lines) {
+        if (line.includes('[DONE]')) continue;
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            const delta = data.choices[0]?.delta?.content || '';
+            fullContent += delta;
+            onChunk(fullContent);
+          } catch (e) {}
         }
-      } else if (error.message.includes('Rate limit reached')) {
-        message = 'Rate limit exceeds for today';
-      } else {
-        message = error.message;
       }
     }
-    
-    throw new Error(message);
+    return fullContent;
+  } catch (error) {
+    throw error;
   }
+};
+
+const formatError = (error) => {
+  let message = 'An unexpected error occurred.';
+  if (error.response?.data?.error?.message) {
+    message = error.response.data.error.message;
+  } else if (error.message) {
+    const jsonMatch = error.message.match(/\{.*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.error?.code === 'rate_limit_exceeded' || parsed.code === 'rate_limit_exceeded') {
+          message = 'Rate limit exceeds for today';
+        } else if (parsed.error?.message) {
+          message = parsed.error.message;
+        } else if (parsed.message) {
+          message = parsed.message;
+        } else {
+          message = error.message;
+        }
+      } catch (e) {
+        message = error.message;
+      }
+    } else if (error.message.includes('Rate limit reached')) {
+      message = 'Rate limit exceeds for today';
+    } else {
+      message = error.message;
+    }
+  }
+  return new Error(message);
 };

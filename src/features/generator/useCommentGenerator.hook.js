@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { generateGroqComment } from './groqClient.js';
+import { generateAIComment } from './groqClient.js';
+import { AI_MODELS, DEFAULT_MODEL } from './models.js';
 
 export const useCommentGenerator = (postData) => {
   const [notes, setNotes] = useState('');
   const [tone, setTone] = useState('Professional');
   const [wordCount, setWordCount] = useState('Medium');
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -17,7 +19,7 @@ export const useCommentGenerator = (postData) => {
     setError(null);
 
     try {
-      await generateGroqComment(postData, tone, wordCount, (content) => {
+      await generateAIComment(postData, tone, wordCount, selectedModel, (content) => {
         setNotes(content);
       });
     } catch (err) {
@@ -25,7 +27,7 @@ export const useCommentGenerator = (postData) => {
     } finally {
       setIsLoading(false);
     }
-  }, [postData, tone, wordCount]);
+  }, [postData, tone, wordCount, selectedModel]);
 
   useEffect(() => {
     if (postData.content && postData.content !== 'Hover over a post or comment to capture...') {
@@ -43,6 +45,8 @@ export const useCommentGenerator = (postData) => {
     setTone,
     wordCount,
     setWordCount,
+    selectedModel,
+    setSelectedModel,
     isLoading,
     error,
     setError,
