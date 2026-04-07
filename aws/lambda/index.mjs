@@ -1,5 +1,7 @@
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
-import { Groq } from "groq-sdk";
+import { handleGroqRequest } from "./groqClient.mjs";
+import { handleOpenRouterRequest } from "./openrouterClient.mjs";
+import { handleGeminiRequest } from "./geminiClient.mjs";
 
 const ssm = new SSMClient({ region: "us-east-1" });
 
@@ -7,41 +9,38 @@ let keysMapping = null;
 
 async function getKeysMapping() {
   if (keysMapping) return keysMapping;
-  
+
   const command = new GetParameterCommand({
     Name: "/linkedin-assistant/keys",
     WithDecryption: true,
   });
-  
+
   const response = await ssm.send(command);
-  const rawValue = response.Parameter.Value;
+  const rawValue = response.Parameter.Value || "";
 
-  try {
-    // StringList can contain multiple values separated by commas.
-    // If the user's mapping is a single string in the list, we take it.
-    // However, if the user intended for each entry in the list to be a key:value,
-    // we should handle both.
-    
-    let toParse = rawValue;
-    
-    // Normalize single quotes to double quotes for JSON.parse
-    toParse = toParse
-      .replace(/'/g, '"') 
-      .replace(/(\w+)\//g, '"$1"/') // Handle provider slashes
-      .replace(/:/g, '":') // Handle keys
-      .replace(/\{"/g, '{"') // Handle start
-      .trim();
+  // This robust parser handles JSON-like strings OR standard comma-separated key:value lists
+  const mapping = {};
 
-    // If it's a simple key:value without braces, wrap it
-    if (!toParse.startsWith('{')) {
-      toParse = `{${toParse}}`;
-    }
-    
-    keysMapping = JSON.parse(toParse);
-  } catch (e) {
-    console.error("Failed to parse SSM parameter as JSON. rawValue:", rawValue, "Error:", e);
-    keysMapping = {};
+  // 1. Remove outermost braces if they exist
+  let cleaned = rawValue.trim();
+  if (cleaned.startsWith('{') && cleaned.endsWith('}')) {
+    cleaned = cleaned.substring(1, cleaned.length - 1);
   }
+
+  // 2. Split by commas to handle multiple entries
+  const entries = cleaned.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/g); // Splits by comma but ignores commas inside quotes
+
+  for (const entry of entries) {
+    const parts = entry.split(/:(.+)/); // Split by first colon only
+    if (parts.length >= 2) {
+      let key = parts[0].trim().replace(/['"]/g, ''); // Remove all quotes from key
+      let val = parts[1].trim().replace(/['"]/g, ''); // Remove all quotes from value
+      mapping[key] = val;
+    }
+  }
+
+  keysMapping = mapping;
+  console.log("Successfully loaded mapping for keys:", Object.keys(keysMapping));
   return keysMapping;
 }
 
@@ -51,39 +50,31 @@ export const handler = async (event) => {
 
   try {
     const mapping = await getKeysMapping();
-    
-    // The 'id' from models.js (e.g., 'groq/llama-3.1-8b') should be the key in our mapping
-    const apiKey = mapping[id]; 
+    const apiKey = mapping[id] || mapping[provider];
     if (!apiKey) {
-      throw new Error(`No API key found for model id: ${id}`);
+      console.error(`No key found in mapping for id: ${id} or provider: ${provider}. Available keys:`, Object.keys(mapping));
+      throw new Error(`Authentication key not found for ${provider}`);
+    }
+    console.log("API Key found for:", provider);
+    console.log("Provider ID:", id);
+
+
+    if (provider === 'openrouter') {
+      return handleOpenRouterRequest(systemPrompt, userPrompt, modelId, apiKey);
     }
 
-    if (provider === 'groq') {
-      const groq = new Groq({ apiKey });
-      const chatCompletion = await groq.chat.completions.create({
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        model: modelId,
-        temperature: 0.8,
-        max_completion_tokens: 1024,
-      });
-
-      return {
-        statusCode: 200,
-        body: chatCompletion.choices[0]?.message?.content || "",
-      };
-    }
-
-    // Add handlers for other providers as needed
     throw new Error(`Provider ${provider} is not yet implemented in the proxy.`);
 
   } catch (error) {
     console.error(error);
     return {
       statusCode: 500,
+      headers: { "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({ message: error.message }),
     };
   }
 };
+
+
+
+

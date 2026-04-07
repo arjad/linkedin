@@ -440,19 +440,27 @@ const App = () => {
   const Loader = ({ message }) => (
     <div style={{
       width: '100%',
-      minHeight: '100px',
+      minHeight: '120px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '12px',
-      background: theme.colors.primary + '05',
+      gap: '16px',
+      background: `linear-gradient(135deg, ${theme.colors.primary}08, ${theme.colors.accent}08)`,
       borderRadius: theme.radius.md,
-      border: `2px dashed ${theme.colors.primary}30`,
-      margin: '8px 0'
+      border: `1px solid ${theme.colors.primary}20`,
+      margin: '12px 0',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
-      <Icons.Refresh size={24} className="spin" color={theme.colors.primary} />
-      <span style={{ fontSize: '13px', fontWeight: '600', color: theme.colors.primary }}>{message || 'Generating magic...'}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+        <span style={{ fontSize: '14px', fontWeight: '700', color: theme.colors.primary, letterSpacing: '0.02em' }}>
+          {message || 'Thinking...'}
+        </span>
+        <div className="loading-dots">
+          <span>.</span><span>.</span><span>.</span>
+        </div>
+      </div>
     </div>
   );
 
@@ -584,7 +592,7 @@ const App = () => {
                   onChange={(e) => setSelectedModel(AI_MODELS.find(m => m.id === e.target.value))}
                 >
                   {AI_MODELS.map(model => (
-                    <option key={model.id} value={model.id}>{model.name.split(' (')[0]}</option>
+                    <option key={model.id} value={model.id}>{model.name}</option>
                   ))}
                 </select>
               </div>
@@ -637,7 +645,7 @@ const App = () => {
             <div style={{ ...styles.outputContainer, marginTop: '8px', borderTop: `1px solid ${theme.colors.border}`, paddingTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <label style={{ ...styles.label, marginBottom: 0, color: theme.colors.primary, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                   Personalized DM <span style={{ fontSize: '10px', background: theme.colors.accent, color: '#fff', padding: '1px 4px', borderRadius: '3px', fontWeight: '800' }}>NEW</span>
+                  Personalized DM <span style={{ fontSize: '10px', background: theme.colors.accent, color: '#fff', padding: '1px 4px', borderRadius: '3px', fontWeight: '800' }}>NEW</span>
                 </label>
               </div>
 
@@ -699,6 +707,32 @@ const App = () => {
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
+        
+        .ai-pulse-container { position: relative; width: 60px; height: 60px; display: flex; alignItems: center; justifyContent: center; }
+        .ai-pulse-circle { position: absolute; width: 100%; height: 100%; borderRadius: 50%; border: 2px solid ${theme.colors.primary}; animation: ai-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .ai-pulse-circle.accent { border-color: ${theme.colors.accent}; animation-delay: 1s; }
+        .ai-pulse-inner { width: 44px; height: 44px; backgroundColor: ${theme.colors.primary}; borderRadius: 50%; display: flex; alignItems: center; justifyContent: center; zIndex: 2; boxShadow: 0 0 20px ${theme.colors.primary}40; }
+        
+        @keyframes ai-pulse {
+          0%, 100% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.4); opacity: 0; }
+        }
+
+        .loading-dots span {
+          animation: loading-dots 1.4s infinite both;
+          font-size: 20px;
+          color: ${theme.colors.primary};
+          margin: 0 1px;
+        }
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes loading-dots {
+          0% { opacity: 0.2; transform: translateY(0); }
+          20% { opacity: 1; transform: translateY(-3px); }
+          100% { opacity: 0.2; transform: translateY(0); }
+        }
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }

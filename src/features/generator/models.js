@@ -1,15 +1,31 @@
 export const AI_MODELS = [
   {
     id: 'groq/llama-3.1-8b',
-    name: 'Llama 3.1 8B (Groq) - Free',
+    name: 'Grok Llama 3.1 8B (free)',
     provider: 'groq',
     modelId: 'llama-3.1-8b-instant',
     isFree: true,
     description: 'Extreme speed'
   },
   {
+    id: 'openrouter/auto-free',
+    name: 'OpenRouter Auto (Best Free)',
+    provider: 'openrouter',
+    modelId: 'openrouter/auto:free',
+    isFree: true,
+    description: 'Auto-selects best free model'
+  },
+  {
+    id: 'openrouter/gemma-7b',
+    name: 'Gemma 7B (free)',
+    provider: 'openrouter',
+    modelId: 'google/gemma-7b-it:free',
+    isFree: true,
+    description: 'Reliable free model'
+  },
+  {
     id: 'groq/llama-3.1-70b',
-    name: 'Llama 3.1 70B (Groq)',
+    name: 'Grok Llama 3.1 70B (Groq)',
     provider: 'groq',
     modelId: 'llama-3.1-70b-versatile',
     isFree: false,
@@ -17,27 +33,11 @@ export const AI_MODELS = [
   },
   {
     id: 'groq/mixtral-8x7b',
-    name: 'Mixtral 8x7B (Groq)',
+    name: 'Grok Mixtral 8x7B (Groq)',
     provider: 'groq',
     modelId: 'mixtral-8x7b-32768',
     isFree: false,
     description: 'High quality'
-  },
-  {
-    id: 'openrouter/gemma-2-9b',
-    name: 'Gemma 2 9B (OpenRouter)',
-    provider: 'openrouter',
-    modelId: 'google/gemma-2-9b-it:free',
-    isFree: false,
-    description: 'Free via OpenRouter'
-  },
-  {
-    id: 'openrouter/mistral-7b',
-    name: 'Mistral 7B (OpenRouter)',
-    provider: 'openrouter',
-    modelId: 'mistralai/mistral-7b-instruct:free',
-    isFree: false,
-    description: 'Free via OpenRouter'
   },
   {
     id: 'google/gemini-pro',

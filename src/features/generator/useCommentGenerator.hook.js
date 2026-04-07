@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { generateAIComment, generateAIDm } from './groqClient.js';
+import { generateAIComment, generateAIDm } from './aiClient.js';
 import { AI_MODELS, DEFAULT_MODEL } from './models.js';
 
 export const useCommentGenerator = (postData) => {
@@ -52,6 +52,7 @@ export const useCommentGenerator = (postData) => {
     }
   }, [postData.content, postData.authorName, postData.authorBio, dmTone, dmWordCount, selectedModel]);
 
+  // 1. Initial Capture OR Model Change -> Regenerate Both
   useEffect(() => {
     if (postData.content && postData.content !== 'Hover over a post or comment to capture...') {
       const timer = setTimeout(() => {
@@ -60,7 +61,27 @@ export const useCommentGenerator = (postData) => {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [postData.content, tone, wordCount, dmTone, dmWordCount, generate, generateDm]);
+  }, [postData.content, selectedModel, generate, generateDm]);
+
+  // 2. Comment Settings Change -> Regenerate ONLY Comment
+  useEffect(() => {
+    if (postData.content && postData.content !== 'Hover over a post or comment to capture...') {
+      const timer = setTimeout(() => {
+        generate();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [tone, wordCount, generate]);
+
+  // 3. DM Settings Change -> Regenerate ONLY DM
+  useEffect(() => {
+    if (postData.content && postData.content !== 'Hover over a post or comment to capture...') {
+      const timer = setTimeout(() => {
+        generateDm();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [dmTone, dmWordCount, generateDm]);
 
   return {
     notes,
