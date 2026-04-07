@@ -85,7 +85,6 @@ const App = () => {
     titleWrapper: {
       display: 'flex',
       alignItems: 'center',
-      gap: '8px'
     },
     headerTitle: {
       fontSize: '18px',
@@ -94,7 +93,9 @@ const App = () => {
       color: theme.colors.text,
       display: 'flex',
       alignItems: 'center',
-      gap: '4px'
+      paddingTop: '4px',
+      paddingBottom: '4px',
+      paddingLeft: '4px',
     },
     actionGroup: {
       display: 'flex',
@@ -464,6 +465,8 @@ const App = () => {
     </div>
   );
 
+  const isMessagingMode = window.location.href.includes('/messaging');
+
   return (
     <div style={styles.container}>
       {/* Small Absolute Close Button */}
@@ -479,29 +482,14 @@ const App = () => {
 
       <header style={styles.header}>
         <div style={styles.titleWrapper}>
-          {activeTab === 'settings' ? (
-            <>
-              <span style={styles.headerTitle}>
-                Comme
-              </span>
-              <img
-                src={chrome.runtime.getURL('assets/logo1.png')}
-                alt="Comment AI"
-                style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
-              />
-            </>
-          ) : (
-            <>
-              <span style={styles.headerTitle}>
-                Comme
-              </span>
-              <img
-                src={chrome.runtime.getURL('assets/logo1.png')}
-                alt="Comment AI"
-                style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
-              />
-            </>
-          )}
+          <span style={styles.headerTitle}>
+            {isMessagingMode ? 'Messaging Assista' : 'Comment Assista'}
+          </span>
+          <img
+            src={chrome.runtime.getURL('assets/logo1.png')}
+            alt="Comment AI"
+            style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
+          />
         </div>
         <div style={styles.actionGroup}>
           {activeTab === 'main' ? (
@@ -553,100 +541,115 @@ const App = () => {
         )}
         {activeTab === 'main' ? (
           <>
-            {/* Post Preview Card */}
-            <div style={styles.card}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  {postData.authorImage ? (
-                    <img src={postData.authorImage} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} alt="Author" />
-                  ) : (
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: theme.colors.border, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icons.User />
-                    </div>
-                  )}
-                  <div>
-                    <div style={{ fontWeight: '700', fontSize: '14px' }}>{postData.authorName || 'Capturing...'}</div>
-                    <div style={{ fontSize: '11px', color: theme.colors.textMuted, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {postData.authorBio || 'Target Bio'}
+            {/* Post Preview Card - Hide in messaging */}
+            {!isMessagingMode && (
+              <div style={styles.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {postData.authorImage ? (
+                      <img src={postData.authorImage} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} alt="Author" />
+                    ) : (
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: theme.colors.border, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icons.User />
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ fontWeight: '700', fontSize: '14px' }}>{postData.authorName || 'Capturing...'}</div>
+                      <div style={{ fontSize: '11px', color: theme.colors.textMuted, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {postData.authorBio || 'Target Bio'}
+                      </div>
                     </div>
                   </div>
+                  {postData.content !== 'Hover over a post or comment to capture...' && (
+                    <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: '700', background: theme.colors.primary + '15', color: theme.colors.primary }}>
+                      {postData.isComment ? 'Reply' : 'Post'}
+                    </span>
+                  )}
                 </div>
-                {postData.content !== 'Hover over a post or comment to capture...' && (
-                  <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: '700', background: theme.colors.primary + '15', color: theme.colors.primary }}>
-                    {postData.isComment ? 'Reply' : 'Post'}
-                  </span>
+                <div style={{ fontSize: '14px', lineHeight: '1.6', maxHeight: '120px', overflow: 'hidden', maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)' }}>
+                  {postData.content}
+                </div>
+              </div>
+            )}
+
+            {/* Output Area (Comment) - Hide in messaging */}
+            {!isMessagingMode && (
+              <div style={styles.outputContainer}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <label style={{ ...styles.label, marginBottom: 0 }}>AI Result (Comment)</label>
+                  <select
+                    style={{ ...styles.select, ...styles.agentSelect }}
+                    value={selectedModel.id}
+                    onChange={(e) => setSelectedModel(AI_MODELS.find(m => m.id === e.target.value))}
+                  >
+                    {AI_MODELS.map(model => (
+                      <option key={model.id} value={model.id}>{model.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Comment Specific Controls */}
+                <div style={{ ...styles.controlsGrid, marginBottom: '12px', background: theme.colors.primary + '05', padding: '8px', borderRadius: theme.radius.sm }}>
+                  <div>
+                    <label style={{ ...styles.label, fontSize: '10px' }}>Tone</label>
+                    <select style={{ ...styles.select, padding: '6px 10px', fontSize: '12px' }} value={tone} onChange={(e) => setTone(e.target.value)}>
+                      <option>Professional</option>
+                      <option>Engaging</option>
+                      <option>Casual</option>
+                      <option>Funny</option>
+                      <option>Supportive</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ ...styles.label, fontSize: '10px' }}>Length</label>
+                    <select style={{ ...styles.select, padding: '6px 10px', fontSize: '12px' }} value={wordCount} onChange={(e) => setWordCount(e.target.value)}>
+                      <option value="Short">Short</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Long">Long</option>
+                    </select>
+                  </div>
+                </div>
+
+                {isLoading ? (
+                  <Loader message="Crafting the perfect comment..." />
+                ) : (
+                  <textarea
+                    style={{ ...styles.textarea, minHeight: '100px', borderColor: isLoading ? theme.colors.accent + '30' : theme.colors.border }}
+                    placeholder="Your AI-powered insight will appear here..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
                 )}
-              </div>
-              <div style={{ fontSize: '14px', lineHeight: '1.6', maxHeight: '120px', overflow: 'hidden', maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)' }}>
-                {postData.content}
-              </div>
-            </div>
-
-            {/* Output Area (Comment) */}
-            <div style={styles.outputContainer}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <label style={{ ...styles.label, marginBottom: 0 }}>AI Result (Comment)</label>
-                <select
-                  style={{ ...styles.select, ...styles.agentSelect }}
-                  value={selectedModel.id}
-                  onChange={(e) => setSelectedModel(AI_MODELS.find(m => m.id === e.target.value))}
-                >
-                  {AI_MODELS.map(model => (
-                    <option key={model.id} value={model.id}>{model.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Comment Specific Controls */}
-              <div style={{ ...styles.controlsGrid, marginBottom: '12px', background: theme.colors.primary + '05', padding: '8px', borderRadius: theme.radius.sm }}>
-                <div>
-                  <label style={{ ...styles.label, fontSize: '10px' }}>Tone</label>
-                  <select style={{ ...styles.select, padding: '6px 10px', fontSize: '12px' }} value={tone} onChange={(e) => setTone(e.target.value)}>
-                    <option>Professional</option>
-                    <option>Engaging</option>
-                    <option>Casual</option>
-                    <option>Funny</option>
-                    <option>Supportive</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ ...styles.label, fontSize: '10px' }}>Length</label>
-                  <select style={{ ...styles.select, padding: '6px 10px', fontSize: '12px' }} value={wordCount} onChange={(e) => setWordCount(e.target.value)}>
-                    <option value="Short">Short</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Long">Long</option>
-                  </select>
+                <div style={styles.actionTray}>
+                  <button style={styles.iconBtn} onClick={() => handleCopy(notes)}>
+                    <Icons.Copy color={copied ? theme.colors.success : theme.colors.text} size={14} />
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                  <button style={{ ...styles.iconBtn, background: theme.colors.primary, color: '#fff' }} onClick={() => generate()} disabled={isLoading}>
+                    {isLoading ? <Icons.Refresh size={14} className="spin" /> : <Icons.Sparkles size={14} />}
+                    Regenerate
+                  </button>
                 </div>
               </div>
-
-              {isLoading ? (
-                <Loader message="Crafting the perfect comment..." />
-              ) : (
-                <textarea
-                  style={{ ...styles.textarea, minHeight: '100px', borderColor: isLoading ? theme.colors.accent + '30' : theme.colors.border }}
-                  placeholder="Your AI-powered insight will appear here..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              )}
-              <div style={styles.actionTray}>
-                <button style={styles.iconBtn} onClick={() => handleCopy(notes)}>
-                  <Icons.Copy color={copied ? theme.colors.success : theme.colors.text} size={14} />
-                  {copied ? 'Copied!' : 'Copy'}
-                </button>
-                <button style={{ ...styles.iconBtn, background: theme.colors.primary, color: '#fff' }} onClick={() => generate()} disabled={isLoading}>
-                  {isLoading ? <Icons.Refresh size={14} className="spin" /> : <Icons.Sparkles size={14} />}
-                  Regenerate
-                </button>
-              </div>
-            </div>
+            )}
 
             {/* DM Section */}
-            <div style={{ ...styles.outputContainer, marginTop: '8px', borderTop: `1px solid ${theme.colors.border}`, paddingTop: '16px' }}>
+            <div style={{ ...styles.outputContainer, marginTop: isMessagingMode ? '0' : '8px', borderTop: isMessagingMode ? 'none' : `1px solid ${theme.colors.border}`, paddingTop: isMessagingMode ? '0' : '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <label style={{ ...styles.label, marginBottom: 0, color: theme.colors.primary, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Personalized DM <span style={{ fontSize: '10px', background: theme.colors.accent, color: '#fff', padding: '1px 4px', borderRadius: '3px', fontWeight: '800' }}>NEW</span>
+                  {isMessagingMode ? 'AI Reply Assistant' : 'Personalized DM'} <span style={{ fontSize: '10px', background: theme.colors.accent, color: '#fff', padding: '1px 4px', borderRadius: '3px', fontWeight: '800' }}>NEW</span>
                 </label>
+                {isMessagingMode && (
+                  <select
+                    style={{ ...styles.select, ...styles.agentSelect }}
+                    value={selectedModel.id}
+                    onChange={(e) => setSelectedModel(AI_MODELS.find(m => m.id === e.target.value))}
+                  >
+                    {AI_MODELS.map(model => (
+                      <option key={model.id} value={model.id}>{model.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* DM Specific Controls */}

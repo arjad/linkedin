@@ -10,12 +10,66 @@ export const usePostExtractor = () => {
     isLowContent: false,
     isImagePost: false,
     isComment: false,
+    isMessaging: false,
     parentPostContent: '',
     postAuthorName: ''
   });
 
+  const [isMessaging, setIsMessagingMode] = useState(false);
+
+  useEffect(() => {
+    const extractMessaging = () => {
+      // Robust detection: Check URL and look for the messaging components
+      const isMsgUrl = window.location.href.includes('/messaging/');
+      const hasMsgList = !!document.querySelector('.msg-s-message-list-content') || !!document.querySelector('.msg-s-message-list');
+      const isMsgPage = isMsgUrl && hasMsgList;
+      
+      setIsMessagingMode(isMsgPage);
+
+      if (!isMsgPage) {
+        if (postData.isMessaging) {
+          setPostData(prev => ({ ...prev, isMessaging: false }));
+        }
+        return;
+      }
+
+      // Extract Profile from the Messaging context
+      const profileCard = document.querySelector('.msg-s-profile-card') || document.querySelector('.msg-convo-wrapper');
+      const nameEl = profileCard?.querySelector('.artdeco-entity-lockup__title .truncate') || 
+                     document.querySelector('.msg-entity-lockup__entity-title');
+      const bioEl = profileCard?.querySelector('.artdeco-entity-lockup__subtitle [title]') || 
+                    profileCard?.querySelector('.msg-entity-lockup__entity-info');
+      const imgEl = profileCard?.querySelector('.artdeco-entity-lockup__image img') || 
+                    document.querySelector('.presence-entity__image');
+
+      // Extract last several messages for thread context
+      const messageEls = document.querySelectorAll('.msg-s-event-listitem__body');
+      const latestMessages = Array.from(messageEls).slice(-8).map(el => {
+        const isOther = el.closest('.msg-s-event-listitem--other');
+        return (isOther ? 'Contact: ' : 'Me: ') + el.innerText.trim();
+      }).join('\n');
+
+      if (nameEl || latestMessages) {
+        setPostData(prev => ({
+          ...prev,
+          content: latestMessages || prev.content || 'Start of conversation...',
+          authorName: nameEl?.innerText.trim() || prev.authorName,
+          authorBio: bioEl?.innerText.trim() || bioEl?.getAttribute('title') || prev.authorBio,
+          authorImage: imgEl?.src || prev.authorImage,
+          isMessaging: true,
+          isComment: false
+        }));
+      }
+    };
+
+    extractMessaging();
+    const timer = setInterval(extractMessaging, 2000);
+    return () => clearInterval(timer);
+  }, [window.location.href, postData.isMessaging]);
+
   useEffect(() => {
     const handleMouseOver = (e) => {
+      if (isMessaging) return;
       const path = e.composedPath();
       const { mainUpdate, isComment } = findMainUpdate(path);
 

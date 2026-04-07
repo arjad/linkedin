@@ -41,25 +41,43 @@ export const buildDmPrompts = (postData, tone, wordCount) => {
     'Long': 'approximately 80-100 words'
   }[wordCount];
 
-  const systemPrompt = `You are a LinkedIn networking expert. Your goal is to write a personalized, ${tone.toLowerCase()} direct message (DM) to ${postData.authorName} based on their recent post.
-  
-  The DM should be engaging, professional, and aim to start a conversation.
-  
-  Format:
-  - Start with a personalized greeting like "Hey ${postData.authorName}," or "Hi ${postData.authorName},".
-  - Mention something specific from their post.
-  - End with a light question or a call to engagement.
-  
+  const { isMessaging, authorName, content, authorBio } = postData;
+
+  const systemPrompt = isMessaging
+    ? `You are a LinkedIn conversation assistant. Your goal is to write a ${tone.toLowerCase()} reply to ${authorName} in an ongoing message thread.
+    
+    Context: You have access to the recent message history.
+    Goal: Continue the conversation naturally, address any questions, or provide the next logical step based on the history.
+    
+    Format:
+    - No need for a formal greeting if the conversation is already flowing.
+    - Be concise and relevant to the last messages.
+    - End with a question or a call to action if appropriate.`
+    : `You are a LinkedIn networking expert. Your goal is to write a personalized, ${tone.toLowerCase()} direct message (DM) to ${authorName} based on their recent post.
+    
+    The DM should be engaging, professional, and aim to start a conversation.
+    
+    Format:
+    - Start with a personalized greeting like "Hey ${authorName}," or "Hi ${authorName},".
+    - Mention something specific from their post.
+    - End with a light question or a call to engagement.`;
+
+  const userPrompt = isMessaging
+    ? `Contact: ${authorName}
+    Bio: ${authorBio || 'N/A'}
+    Conversation History (latest messages):
+    ${content}`
+    : `Person: ${authorName}
+    Bio: ${authorBio || 'N/A'}
+    Post Content: ${content}`;
+
+  const constraints = `
   Constraints:
   - NO hashtags.
   - Target length: ${wordCountConstraint}.
-  - Respond with ONLY the DM text.`;
+  - Respond with ONLY the message text.`;
 
-  const userPrompt = `Person: ${postData.authorName}
-  Bio: ${postData.authorBio || 'N/A'}
-  Post Content: ${postData.content}`;
-
-  return { systemPrompt, userPrompt };
+  return { systemPrompt: systemPrompt + constraints, userPrompt };
 };
 
 
