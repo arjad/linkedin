@@ -1,14 +1,31 @@
 import { Groq } from 'groq-sdk';
 
+// For production, set this to your AWS Lambda/Backend URL
+const PROXY_ENDPOINT = process.env.PROXY_ENDPOINT || '';
+
 export const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
   dangerouslyAllowBrowser: true 
 });
 
-import { buildPrompts } from './promptBuilder.js';
+import { buildPrompts, buildDmPrompts } from './promptBuilder.js';
 
 export const generateAIComment = async (postData, tone, wordCount, selectedModel, onChunk) => {
   const { systemPrompt, userPrompt } = buildPrompts(postData, tone, wordCount);
+  return handleRequest(systemPrompt, userPrompt, selectedModel, onChunk);
+};
+
+export const generateAIDm = async (postData, tone, wordCount, selectedModel, onChunk) => {
+  const { systemPrompt, userPrompt } = buildDmPrompts(postData, tone, wordCount);
+  return handleRequest(systemPrompt, userPrompt, selectedModel, onChunk);
+};
+
+
+const handleRequest = async (systemPrompt, userPrompt, selectedModel, onChunk) => {
+  // If we have a proxy endpoint, we route everything through it
+  if (PROXY_ENDPOINT) {
+    return handleProxyRequest(systemPrompt, userPrompt, selectedModel, onChunk);
+  }
 
   if (selectedModel.provider === 'groq') {
     return handleGroqRequest(systemPrompt, userPrompt, selectedModel.modelId, onChunk);
@@ -20,6 +37,47 @@ export const generateAIComment = async (postData, tone, wordCount, selectedModel
     throw new Error(`Provider ${selectedModel.provider} is not supported yet.`);
   }
 };
+
+
+const handleProxyRequest = async (systemPrompt, userPrompt, selectedModel, onChunk) => {
+  try {
+    const response = await fetch(PROXY_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        systemPrompt,
+        userPrompt,
+        modelId: selectedModel.modelId,
+        id: selectedModel.id,
+        provider: selectedModel.provider
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Proxy request failed');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullContent = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value);
+      fullContent += chunk;
+      onChunk(fullContent);
+    }
+    return fullContent;
+  } catch (error) {
+    throw error;
+  }
+};
+
 
 const handleGoogleRequest = async (systemPrompt, userPrompt, modelId, onChunk) => {
   try {

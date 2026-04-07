@@ -9,26 +9,44 @@ const App = () => {
   const {
     notes,
     setNotes,
+    dmNotes,
+    setDmNotes,
     tone,
     setTone,
     wordCount,
     setWordCount,
+    dmTone,
+    setDmTone,
+    dmWordCount,
+    setDmWordCount,
     selectedModel,
     setSelectedModel,
     isLoading,
+    isDmLoading,
     error,
-    generate
+    generate,
+    generateDm
   } = useCommentGenerator(postData);
 
+
+
+
   const [copied, setCopied] = useState(false);
+  const [dmCopied, setDmCopied] = useState(false);
   const [activeTab, setActiveTab] = useState('main');
   const [activeSettingsTab, setActiveSettingsTab] = useState('about');
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(notes);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = (text, isDm = false) => {
+    navigator.clipboard.writeText(text);
+    if (isDm) {
+      setDmCopied(true);
+      setTimeout(() => setDmCopied(false), 2000);
+    } else {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
+
 
   const handleInsert = () => {
     const editors = document.querySelectorAll('.ql-editor[contenteditable="true"]');
@@ -419,6 +437,25 @@ const App = () => {
     </div>
   );
 
+  const Loader = ({ message }) => (
+    <div style={{
+      width: '100%',
+      minHeight: '100px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '12px',
+      background: theme.colors.primary + '05',
+      borderRadius: theme.radius.md,
+      border: `2px dashed ${theme.colors.primary}30`,
+      margin: '8px 0'
+    }}>
+      <Icons.Refresh size={24} className="spin" color={theme.colors.primary} />
+      <span style={{ fontSize: '13px', fontWeight: '600', color: theme.colors.primary }}>{message || 'Generating magic...'}</span>
+    </div>
+  );
+
   return (
     <div style={styles.container}>
       {/* Small Absolute Close Button */}
@@ -488,6 +525,24 @@ const App = () => {
       </header>
 
       <div style={styles.scrollArea}>
+        {error && (
+          <div style={{
+            padding: '12px',
+            background: '#fee2e2',
+            border: '1px solid #f87171',
+            borderRadius: theme.radius.sm,
+            color: '#b91c1c',
+            fontSize: '13px',
+            fontWeight: '600',
+            marginBottom: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <Icons.Refresh size={16} />
+            {error}
+          </div>
+        )}
         {activeTab === 'main' ? (
           <>
             {/* Post Preview Card */}
@@ -519,38 +574,10 @@ const App = () => {
               </div>
             </div>
 
-            {/* Configuration */}
-            <div style={styles.controlsGrid}>
-              <div>
-                <label style={styles.label}>Tone</label>
-                <select style={styles.select} value={tone} onChange={(e) => setTone(e.target.value)}>
-                  <option>Professional</option>
-                  <option>Engaging</option>
-                  <option>Casual</option>
-                  <option>Funny</option>
-                  <option>Supportive</option>
-                </select>
-              </div>
-              <div>
-                <label style={styles.label}>Length</label>
-                <select style={styles.select} value={wordCount} onChange={(e) => setWordCount(e.target.value)}>
-                  <option value="Short">Short</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Long">Long</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Generate Button */}
-            <button style={styles.generateBtn} onClick={() => generate()} disabled={isLoading}>
-              {isLoading ? <Icons.Refresh size={20} className="spin" /> : <Icons.Sparkles size={18} color="#fff" />}
-              {isLoading ? 'Generating Magic...' : 'Generate New Variation'}
-            </button>
-
-            {/* Output Area */}
+            {/* Output Area (Comment) */}
             <div style={styles.outputContainer}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ ...styles.label, marginBottom: 0 }}>AI Result</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <label style={{ ...styles.label, marginBottom: 0 }}>AI Result (Comment)</label>
                 <select
                   style={{ ...styles.select, ...styles.agentSelect }}
                   value={selectedModel.id}
@@ -561,23 +588,104 @@ const App = () => {
                   ))}
                 </select>
               </div>
-              <textarea
-                style={{ ...styles.textarea, borderColor: isLoading ? theme.colors.accent + '30' : theme.colors.border }}
-                placeholder="Your AI-powered insight will appear here..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
+
+              {/* Comment Specific Controls */}
+              <div style={{ ...styles.controlsGrid, marginBottom: '12px', background: theme.colors.primary + '05', padding: '8px', borderRadius: theme.radius.sm }}>
+                <div>
+                  <label style={{ ...styles.label, fontSize: '10px' }}>Tone</label>
+                  <select style={{ ...styles.select, padding: '6px 10px', fontSize: '12px' }} value={tone} onChange={(e) => setTone(e.target.value)}>
+                    <option>Professional</option>
+                    <option>Engaging</option>
+                    <option>Casual</option>
+                    <option>Funny</option>
+                    <option>Supportive</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ ...styles.label, fontSize: '10px' }}>Length</label>
+                  <select style={{ ...styles.select, padding: '6px 10px', fontSize: '12px' }} value={wordCount} onChange={(e) => setWordCount(e.target.value)}>
+                    <option value="Short">Short</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Long">Long</option>
+                  </select>
+                </div>
+              </div>
+
+              {isLoading ? (
+                <Loader message="Crafting the perfect comment..." />
+              ) : (
+                <textarea
+                  style={{ ...styles.textarea, minHeight: '100px', borderColor: isLoading ? theme.colors.accent + '30' : theme.colors.border }}
+                  placeholder="Your AI-powered insight will appear here..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              )}
               <div style={styles.actionTray}>
-                <button style={styles.iconBtn} onClick={handleCopy}>
-                  <Icons.Copy color={copied ? theme.colors.success : theme.colors.text} />
+                <button style={styles.iconBtn} onClick={() => handleCopy(notes)}>
+                  <Icons.Copy color={copied ? theme.colors.success : theme.colors.text} size={14} />
                   {copied ? 'Copied!' : 'Copy'}
                 </button>
-                <button style={{ ...styles.iconBtn, ...styles.primaryIconBtn, opacity: 0.6, cursor: 'not-allowed' }} title="Premium Feature">
-                  <Icons.PenLine color="#fff" />
-                  Insert to LinkedIn
+                <button style={{ ...styles.iconBtn, background: theme.colors.primary, color: '#fff' }} onClick={() => generate()} disabled={isLoading}>
+                  {isLoading ? <Icons.Refresh size={14} className="spin" /> : <Icons.Sparkles size={14} />}
+                  Regenerate
                 </button>
               </div>
             </div>
+
+            {/* DM Section */}
+            <div style={{ ...styles.outputContainer, marginTop: '8px', borderTop: `1px solid ${theme.colors.border}`, paddingTop: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <label style={{ ...styles.label, marginBottom: 0, color: theme.colors.primary, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                   Personalized DM <span style={{ fontSize: '10px', background: theme.colors.accent, color: '#fff', padding: '1px 4px', borderRadius: '3px', fontWeight: '800' }}>NEW</span>
+                </label>
+              </div>
+
+              {/* DM Specific Controls */}
+              <div style={{ ...styles.controlsGrid, marginBottom: '12px', background: theme.colors.accent + '05', padding: '8px', borderRadius: theme.radius.sm }}>
+                <div>
+                  <label style={{ ...styles.label, fontSize: '10px' }}>Tone</label>
+                  <select style={{ ...styles.select, padding: '6px 10px', fontSize: '12px' }} value={dmTone} onChange={(e) => setDmTone(e.target.value)}>
+                    <option>Engaging</option>
+                    <option>Professional</option>
+                    <option>Casual</option>
+                    <option>Friendly</option>
+                    <option>Curious</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ ...styles.label, fontSize: '10px' }}>Length</label>
+                  <select style={{ ...styles.select, padding: '6px 10px', fontSize: '12px' }} value={dmWordCount} onChange={(e) => setDmWordCount(e.target.value)}>
+                    <option value="Short">Short</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Long">Long</option>
+                  </select>
+                </div>
+              </div>
+
+              {isDmLoading ? (
+                <Loader message="Personalizing your DM..." />
+              ) : (
+                <textarea
+                  style={{ ...styles.textarea, minHeight: '100px', fontSize: '14px', borderColor: isDmLoading ? theme.colors.accent + '30' : theme.colors.border }}
+                  placeholder="Personalized DM will appear here..."
+                  value={dmNotes}
+                  onChange={(e) => setDmNotes(e.target.value)}
+                />
+              )}
+              <div style={styles.actionTray}>
+                <button style={styles.iconBtn} onClick={() => handleCopy(dmNotes, true)}>
+                  <Icons.Copy color={dmCopied ? theme.colors.success : theme.colors.text} size={14} />
+                  {dmCopied ? 'Copied DM!' : 'Copy DM'}
+                </button>
+                <button style={{ ...styles.iconBtn, background: theme.colors.accent, color: '#fff' }} onClick={() => generateDm()} disabled={isDmLoading}>
+                  {isDmLoading ? <Icons.Refresh size={14} className="spin" /> : <Icons.Sparkles size={14} />}
+                  Regenerate DM
+                </button>
+              </div>
+            </div>
+
+
           </>
         ) : (
           <SettingsView />

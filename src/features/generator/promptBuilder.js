@@ -33,3 +33,33 @@ export const buildPrompts = (postData, tone, wordCount) => {
 
   return { systemPrompt, userPrompt };
 };
+
+export const buildDmPrompts = (postData, tone, wordCount) => {
+  const wordCountConstraint = {
+    'Short': 'max 20 words',
+    'Medium': 'approximately 40-50 words',
+    'Long': 'approximately 80-100 words'
+  }[wordCount];
+
+  const systemPrompt = `You are a LinkedIn networking expert. Your goal is to write a personalized, ${tone.toLowerCase()} direct message (DM) to ${postData.authorName} based on their recent post.
+  
+  The DM should be engaging, professional, and aim to start a conversation.
+  
+  Format:
+  - Start with a personalized greeting like "Hey ${postData.authorName}," or "Hi ${postData.authorName},".
+  - Mention something specific from their post.
+  - End with a light question or a call to engagement.
+  
+  Constraints:
+  - NO hashtags.
+  - Target length: ${wordCountConstraint}.
+  - Respond with ONLY the DM text.`;
+
+  const userPrompt = `Person: ${postData.authorName}
+  Bio: ${postData.authorBio || 'N/A'}
+  Post Content: ${postData.content}`;
+
+  return { systemPrompt, userPrompt };
+};
+
+
