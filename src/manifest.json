@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LinkedIn Assistant",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI-powered assistant to generate smart, context-aware comments and replies on LinkedIn.",
   "background": {
     "service_worker": "background.js",

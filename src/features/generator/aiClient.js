@@ -85,31 +85,22 @@ const handleProxyRequest = async (systemPrompt, userPrompt, selectedModel, onChu
 
 
 const formatError = (error) => {
-  let message = 'An unexpected error occurred.';
-  if (error.response?.data?.error?.message) {
-    message = error.response.data.error.message;
-  } else if (error.message) {
-    const jsonMatch = error.message.match(/\{.*\}/);
-    if (jsonMatch) {
-      try {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.error?.code === 'rate_limit_exceeded' || parsed.code === 'rate_limit_exceeded') {
-          message = 'Rate limit exceeds for today';
-        } else if (parsed.error?.message) {
-          message = parsed.error.message;
-        } else if (parsed.message) {
-          message = parsed.message;
-        } else {
-          message = error.message;
-        }
-      } catch (e) {
-        message = error.message;
-      }
-    } else if (error.message.includes('Rate limit reached')) {
-      message = 'Rate limit exceeds for today';
-    } else {
-      message = error.message;
-    }
+  let message = 'Something went wrong.';
+  
+  const errorStr = error.message || '';
+  const errorData = error.response?.data?.error || {};
+
+  if (errorStr.includes('rate_limit_exceeded') || errorData.code === 'rate_limit_exceeded') {
+    message = 'Daily limit reached. Try again later.';
+  } else if (errorStr.includes('authentication') || errorStr.includes('API key')) {
+    message = 'API key error. Check settings.';
+  } else if (errorStr.includes('network') || errorStr.includes('fetch')) {
+    message = 'Connection failed. Please retry.';
+  } else if (errorData.message) {
+    message = errorData.message.length < 50 ? errorData.message : 'AI model error.';
+  } else if (error.message && error.message.length < 50) {
+    message = error.message;
   }
+
   return new Error(message);
 };
