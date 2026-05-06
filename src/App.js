@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { theme, Icons } from './features/ui/theme.js';
 import { usePostExtractor } from './features/extractor/usePostExtractor.hook.js';
 import { useCommentGenerator } from './features/generator/useCommentGenerator.hook.js';
@@ -35,6 +35,34 @@ const App = () => {
   const [dmCopied, setDmCopied] = useState(false);
   const [activeTab, setActiveTab] = useState('main');
   const [activeSettingsTab, setActiveSettingsTab] = useState('about');
+  const [toast, setToast] = useState({ visible: false, message: '' });
+
+  const isMessagingMode = window.location.href.includes('/messaging');
+
+  const showToast = (message) => {
+    setToast({ visible: true, message });
+    setTimeout(() => setToast({ visible: false, message: '' }), 5000);
+  };
+
+  useEffect(() => {
+    if (error) {
+      const isQuota = error.toLowerCase().includes('limit') || error.toLowerCase().includes('quota');
+      const msg = isQuota ? 'model quote reach' : error;
+      showToast(`${msg}. retry with ctrl+c to regenerate comment`);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        generate();
+        generateDm();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [generate, generateDm]);
 
   const handleCopy = (text, isDm = false) => {
     navigator.clipboard.writeText(text);
@@ -48,17 +76,17 @@ const App = () => {
   };
 
 
-  const handleInsert = () => {
-    const editors = document.querySelectorAll('.ql-editor[contenteditable="true"]');
+  const handleInsert = (text) => {
+    const editors = document.querySelectorAll('.ql-editor[contenteditable="true"], [contenteditable="true"]');
     let targetEditor = document.activeElement;
-    if (!targetEditor || !targetEditor.classList.contains('ql-editor')) {
+    if (!targetEditor || targetEditor.getAttribute('contenteditable') !== 'true') {
       targetEditor = Array.from(editors).find(ed => ed.offsetParent !== null) || editors[0];
     }
     if (targetEditor) {
       targetEditor.focus();
-      document.execCommand('insertText', false, notes);
+      document.execCommand('insertText', false, text);
     } else {
-      alert("Please click inside a comment/reply box on LinkedIn first.");
+      alert("Please click inside a comment or DM box on LinkedIn first.");
     }
   };
 
@@ -438,6 +466,37 @@ const App = () => {
     </div>
   );
 
+  const Toast = ({ visible, message }) => {
+    if (!visible) return null;
+    return (
+      <div style={{
+        position: 'fixed',
+        top: '60px',
+        left: '20px',
+        right: '20px',
+        padding: '12px 16px',
+        background: '#fff5f5',
+        color: '#c53030',
+        borderRadius: '8px',
+        fontSize: '13px',
+        fontWeight: '700',
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        border: '1px solid #feb2b2',
+        borderLeft: `4px solid #f56565`,
+        animation: 'slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}>
+        <div style={{ color: '#f56565' }}>
+          <Icons.Refresh size={18} />
+        </div>
+        <div style={{ flex: 1 }}>{message}</div>
+      </div>
+    );
+  };
+
   const Loader = ({ message }) => (
     <div style={{
       width: '100%',
@@ -465,7 +524,6 @@ const App = () => {
     </div>
   );
 
-  const isMessagingMode = window.location.href.includes('/messaging');
 
   return (
     <div style={styles.container}>
@@ -521,24 +579,7 @@ const App = () => {
       </header>
 
       <div style={styles.scrollArea}>
-        {error && (
-          <div style={{
-            padding: '12px',
-            background: '#fee2e2',
-            border: '1px solid #f87171',
-            borderRadius: theme.radius.sm,
-            color: '#b91c1c',
-            fontSize: '13px',
-            fontWeight: '600',
-            marginBottom: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <Icons.Refresh size={16} />
-            {error}
-          </div>
-        )}
+        <Toast visible={toast.visible} message={toast.message} />
         {activeTab === 'main' ? (
           <>
             {/* Post Preview Card - Hide in messaging */}
@@ -687,7 +728,7 @@ const App = () => {
               <div style={styles.actionTray}>
                 <button style={styles.iconBtn} onClick={() => handleCopy(dmNotes, true)}>
                   <Icons.Copy color={dmCopied ? theme.colors.success : theme.colors.text} size={14} />
-                  {dmCopied ? 'Copied DM!' : 'Copy DM'}
+                  {dmCopied ? 'Copied!' : 'Copy'}
                 </button>
                 <button style={{ ...styles.iconBtn, background: theme.colors.accent, color: '#fff' }} onClick={() => generateDm()} disabled={isDmLoading}>
                   {isDmLoading ? <Icons.Refresh size={14} className="spin" /> : <Icons.Sparkles size={14} />}
@@ -704,7 +745,7 @@ const App = () => {
       </div>
 
       <footer style={{ padding: '12px', textAlign: 'center', fontSize: '11px', color: theme.colors.textMuted, background: theme.colors.surface, borderTop: `1px solid ${theme.colors.border}` }}>
-        LinkedIn AI Assistant • v2.5 Premium
+        LinkedIn AI Assistant • v1.0.1 Premium
       </footer>
 
       <style>{`
@@ -734,6 +775,11 @@ const App = () => {
           0% { opacity: 0.2; transform: translateY(0); }
           20% { opacity: 1; transform: translateY(-3px); }
           100% { opacity: 0.2; transform: translateY(0); }
+        }
+
+        @keyframes slideDown {
+          from { transform: translateY(-100%) scale(0.9); opacity: 0; }
+          to { transform: translateY(0) scale(1); opacity: 1; }
         }
 
         ::-webkit-scrollbar { width: 6px; }
