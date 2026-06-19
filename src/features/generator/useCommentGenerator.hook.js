@@ -16,7 +16,11 @@ export const useCommentGenerator = (postData) => {
   const [error, setError] = useState(null);
 
   const generate = useCallback(async () => {
-    if (!postData.content || postData.content === 'Hover over a post or comment to capture...') return;
+    console.log('AI Assistant: generate() triggered. Content:', postData.content);
+    if (!postData.content || postData.content === 'Hover over a post or comment to capture...') {
+      console.log('AI Assistant: Aborted - No content captured.');
+      return;
+    }
     if (!postData.content && !postData.isImagePost) return;
 
     setIsLoading(true);
@@ -36,7 +40,7 @@ export const useCommentGenerator = (postData) => {
 
   const generateDm = useCallback(async () => {
     if (!postData.content || postData.content === 'Hover over a post or comment to capture...') return;
-    
+
     setIsDmLoading(true);
     setDmNotes('');
     setError(null);

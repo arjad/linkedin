@@ -19,3 +19,36 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
   }
 });
+
+// Listener for AI Proxy Requests to bypass CORS
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'proxyRequest') {
+    const { endpoint, body } = request;
+    
+    fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body)
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.text().then(text => {
+          throw new Error(`Proxy failed (${response.status}): ${text}`);
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      sendResponse({ success: true, data });
+    })
+    .catch(error => {
+      console.error('Background Proxy Error:', error);
+      sendResponse({ success: false, error: error.message });
+    });
+
+    return true; // Keep message channel open for async response
+  }
+});
+

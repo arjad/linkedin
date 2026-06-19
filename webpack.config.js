@@ -1,6 +1,5 @@
 import path from 'path';
 import CopyPlugin from 'copy-webpack-plugin';
-import Dotenv from 'dotenv-webpack';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,7 +36,7 @@ export default {
     ],
   },
   plugins: [
-    new Dotenv(),
+
     new CopyPlugin({
       patterns: [
         { from: 'src/manifest.json', to: 'manifest.json' },
