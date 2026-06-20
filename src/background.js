@@ -33,12 +33,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       body: JSON.stringify(body)
     })
     .then(response => {
-      if (!response.ok) {
-        return response.text().then(text => {
+      return response.text().then(text => {
+        if (!response.ok) {
           throw new Error(`Proxy failed (${response.status}): ${text}`);
-        });
-      }
-      return response.json();
+        }
+        try {
+          return JSON.parse(text);
+        } catch(e) {
+          return text;
+        }
+      });
     })
     .then(data => {
       sendResponse({ success: true, data });

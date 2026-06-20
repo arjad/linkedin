@@ -24,34 +24,61 @@ const handleProxyRequest = async (systemPrompt, userPrompt, selectedModel, onChu
   console.log('AI Assistant: handleProxyRequest starting via Background...');
   
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({
-      action: 'proxyRequest',
-      endpoint: PROXY_ENDPOINT,
-      body: {
-        systemPrompt,
-        userPrompt,
-        modelId: selectedModel.modelId
-      }
-    }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('AI Assistant: Background Error:', chrome.runtime.lastError);
-        return reject(new Error(chrome.runtime.lastError.message));
-      }
+    if (!chrome.runtime?.id) {
+      return reject(new Error('Extension context invalidated. Please refresh the page.'));
+    }
 
-      if (response && response.success) {
-        const data = response.data;
-        console.log('AI Assistant: Proxy Response Data:', data);
-        if (data.ok) {
-          const result = data.response || '';
-          onChunk(result);
-          resolve(result);
-        } else {
-          reject(new Error(data.message || 'AI request failed'));
+    try {
+      chrome.runtime.sendMessage({
+        action: 'proxyRequest',
+        endpoint: PROXY_ENDPOINT,
+        body: {
+          systemPrompt,
+          userPrompt,
+          modelId: selectedModel.modelId
         }
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('AI Assistant: Background Error:', chrome.runtime.lastError);
+          const errMsg = chrome.runtime.lastError.message;
+          if (errMsg.includes('Extension context invalidated')) {
+             return reject(new Error('Extension context invalidated. Please refresh the page.'));
+          }
+          return reject(new Error(errMsg));
+        }
+
+        if (response && response.success) {
+          const data = response.data;
+          console.log('AI Assistant: Proxy Response Data:', data);
+          
+          let result = '';
+          if (typeof data === 'string') {
+            result = data;
+          } else if (data.ok !== undefined && data.ok === true) {
+            result = data.response || '';
+          } else if (data.response || data.comment || data.message || data.text) {
+            result = data.response || data.comment || data.message || data.text;
+          } else {
+            result = JSON.stringify(data);
+          }
+
+          if (result) {
+            onChunk(result);
+            resolve(result);
+          } else {
+            reject(new Error(data.message || 'AI request failed'));
+          }
+        } else {
+          reject(new Error(response?.error || 'Unknown proxy error'));
+        }
+      });
+    } catch (err) {
+      if (err.message && err.message.includes('Extension context invalidated')) {
+        reject(new Error('Extension context invalidated. Please refresh the page.'));
       } else {
-        reject(new Error(response?.error || 'Unknown proxy error'));
+        reject(err);
       }
-    });
+    }
   });
 };
 

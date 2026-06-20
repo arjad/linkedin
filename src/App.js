@@ -19,6 +19,8 @@ const App = () => {
     setDmTone,
     dmWordCount,
     setDmWordCount,
+    isDmEnabled,
+    setIsDmEnabled,
     selectedModel,
     setSelectedModel,
     isLoading,
@@ -46,6 +48,7 @@ const App = () => {
 
   useEffect(() => {
     if (error) {
+      console.log("ok = ", error)
       const isQuota = error.toLowerCase().includes('limit') || error.toLowerCase().includes('quota');
       const msg = isQuota ? 'model quote reach' : error;
       showToast(`${msg}. retry with ctrl+c to regenerate comment`);
@@ -77,7 +80,7 @@ const App = () => {
 
 
   const handleInsert = (text) => {
-    const editors = document.querySelectorAll('.ql-editor[contenteditable="true"], [contenteditable="true"]');                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7
+    const editors = document.querySelectorAll('.ql-editor[contenteditable="true"], [contenteditable="true"]'); x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7x6jidhsb_asdwq89e6w7_k2m9n4p8q1r5t7v3x0z6c8b2n4m7l1k9j3h5g8f2d6s0a4p7o1i5u9y3t6r8e2w4q7
     let targetEditor = document.activeElement;
     if (!targetEditor || targetEditor.getAttribute('contenteditable') !== 'true') {
       targetEditor = Array.from(editors).find(ed => ed.offsetParent !== null) || editors[0];
@@ -352,7 +355,7 @@ const App = () => {
     <div style={styles.settingsSection}>
       {/* Sub Tabs */}
       <div style={styles.settingsTabs}>
-        {['about', 'pricing', 'contact', 'privacy'].map((tab) => (
+        {['about', 'pricing', 'privacy'].map((tab) => (
           <div
             key={tab}
             style={styles.settingsTab(activeSettingsTab === tab)}
@@ -364,18 +367,41 @@ const App = () => {
       </div>
 
       {activeSettingsTab === 'about' && (
-        <div style={styles.settingsGroup}>
-          <div style={styles.settingsTitle}>About Assistant</div>
-          <div style={styles.settingsText}>
-            LinkedIn AI Assistant is designed to help you engage more effectively with your network using advanced AI models. It captures post context automatically and suggests relevant, professional replies based on your preferred tone.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={styles.settingsGroup}>
+            <div style={styles.settingsTitle}>About Assistant</div>
+            <div style={styles.settingsText}>
+              LinkedIn AI Assistant is designed to help you engage more effectively with your network using advanced AI models. It captures post context automatically and suggests relevant, professional replies based on your preferred tone.
+            </div>
+            <div style={{ ...styles.settingsText, marginTop: '12px', fontWeight: '600' }}>
+              Contributors:
+              <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                <li>Arjad (Lead Developer)</li>
+                <li>Groq AI Team</li>
+                <li>Open Source Community</li>
+              </ul>
+            </div>
           </div>
-          <div style={{ ...styles.settingsText, marginTop: '12px', fontWeight: '600' }}>
-            Contributors:
-            <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
-              <li>Arjad (Lead Developer)</li>
-              <li>Groq AI Team</li>
-              <li>Open Source Community</li>
-            </ul>
+          <div style={styles.settingsGroup}>
+            <div style={styles.settingsTitle}>Contact Us</div>
+            <div style={styles.settingsText}>
+              For feedback, support, or partnership inquiries, reach out to us:
+              <br /><br />
+              <a
+                href="mailto:devarjad@gmail.com"
+                style={{
+                  color: theme.colors.primary,
+                  fontWeight: '700',
+                  textDecoration: 'none',
+                  background: theme.colors.primary + '10',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  display: 'inline-block'
+                }}
+              >
+                devarjad@gmail.com
+              </a>
+            </div>
           </div>
         </div>
       )}
@@ -440,29 +466,6 @@ const App = () => {
         </div>
       )}
 
-      {activeSettingsTab === 'contact' && (
-        <div style={styles.settingsGroup}>
-          <div style={styles.settingsTitle}>Contact Us</div>
-          <div style={styles.settingsText}>
-            For feedback, support, or partnership inquiries, reach out to us:
-            <br /><br />
-            <a
-              href="mailto:devarjad@gmail.com"
-              style={{
-                color: theme.colors.primary,
-                fontWeight: '700',
-                textDecoration: 'none',
-                background: theme.colors.primary + '10',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                display: 'inline-block'
-              }}
-            >
-              devarjad@gmail.com
-            </a>
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -541,13 +544,19 @@ const App = () => {
       <header style={styles.header}>
         <div style={styles.titleWrapper}>
           <span style={styles.headerTitle}>
-            {isMessagingMode ? 'Messaging Assista' : 'Comment Assista'}
+            {isMessagingMode ? 'Messaging Assista' : 'Comment Assista22'}
           </span>
-          <img
-            src={chrome.runtime.getURL('assets/logo1.png')}
-            alt="Comment AI"
-            style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
-          />
+          {(() => {
+            const logoUrl = chrome.runtime?.id ? chrome.runtime.getURL('assets/logo1.png') : null;
+            if (!logoUrl || logoUrl.includes('invalid')) return null;
+            return (
+              <img
+                src={logoUrl}
+                alt="Comment AI"
+                style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
+              />
+            );
+          })()}
         </div>
         <div style={styles.actionGroup}>
           {activeTab === 'main' ? (
@@ -655,7 +664,7 @@ const App = () => {
                   <Loader message="Crafting the perfect comment..." />
                 ) : (
                   <textarea
-                    style={{ ...styles.textarea, minHeight: '100px', borderColor: isLoading ? theme.colors.accent + '30' : theme.colors.border }}
+                    style={{ ...styles.textarea, color: 'black', minHeight: '100px', borderColor: isLoading ? theme.colors.accent + '30' : theme.colors.border }}
                     placeholder="Your AI-powered insight will appear here..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -677,9 +686,17 @@ const App = () => {
             {/* DM Section */}
             <div style={{ ...styles.outputContainer, marginTop: isMessagingMode ? '0' : '8px', borderTop: isMessagingMode ? 'none' : `1px solid ${theme.colors.border}`, paddingTop: isMessagingMode ? '0' : '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <label style={{ ...styles.label, marginBottom: 0, color: theme.colors.primary, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  {isMessagingMode ? 'AI Reply Assistant' : 'Personalized DM'} <span style={{ fontSize: '10px', background: theme.colors.accent, color: '#fff', padding: '1px 4px', borderRadius: '3px', fontWeight: '800' }}>NEW</span>
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label style={{ ...styles.label, marginBottom: 0, color: theme.colors.primary, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {isMessagingMode ? 'AI Reply Assistant' : 'Personalized DM'} <span style={{ fontSize: '10px', background: theme.colors.accent, color: '#fff', padding: '1px 4px', borderRadius: '3px', fontWeight: '800' }}>NEW</span>
+                  </label>
+                  <label style={{ position: 'relative', display: 'inline-block', width: '34px', height: '20px' }}>
+                    <input type="checkbox" style={{ opacity: 0, width: 0, height: 0 }} checked={isDmEnabled} onChange={(e) => setIsDmEnabled(e.target.checked)} />
+                    <span style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDmEnabled ? theme.colors.success : theme.colors.border, transition: '.4s', borderRadius: '20px' }}>
+                      <span style={{ position: 'absolute', content: '""', height: '16px', width: '16px', left: isDmEnabled ? '16px' : '2px', bottom: '2px', backgroundColor: 'white', transition: '.4s', borderRadius: '50%' }}></span>
+                    </span>
+                  </label>
+                </div>
                 {isMessagingMode && (
                   <select
                     style={{ ...styles.select, ...styles.agentSelect }}

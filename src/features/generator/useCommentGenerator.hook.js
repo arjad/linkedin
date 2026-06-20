@@ -10,6 +10,7 @@ export const useCommentGenerator = (postData) => {
 
   const [dmTone, setDmTone] = useState('Engaging');
   const [dmWordCount, setDmWordCount] = useState('Short');
+  const [isDmEnabled, setIsDmEnabled] = useState(false);
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
   const [isLoading, setIsLoading] = useState(false);
   const [isDmLoading, setIsDmLoading] = useState(false);
@@ -39,6 +40,7 @@ export const useCommentGenerator = (postData) => {
   }, [postData.content, postData.isImagePost, postData.isComment, postData.authorName, postData.authorBio, tone, wordCount, selectedModel]);
 
   const generateDm = useCallback(async () => {
+    if (!isDmEnabled) return;
     if (!postData.content || postData.content === 'Hover over a post or comment to capture...') return;
 
     setIsDmLoading(true);
@@ -62,17 +64,17 @@ export const useCommentGenerator = (postData) => {
       const timer = setTimeout(() => {
         generate();
         generateDm();
-      }, 500);
+      }, 800);
       return () => clearTimeout(timer);
     }
-  }, [postData.content, selectedModel, generate, generateDm]);
+  }, [postData.content, selectedModel, generate, generateDm, isDmEnabled]);
 
   // 2. Comment Settings Change -> Regenerate ONLY Comment
   useEffect(() => {
     if (postData.content && postData.content !== 'Hover over a post or comment to capture...') {
       const timer = setTimeout(() => {
         generate();
-      }, 500);
+      }, 800);
       return () => clearTimeout(timer);
     }
   }, [tone, wordCount, generate]);
@@ -82,10 +84,10 @@ export const useCommentGenerator = (postData) => {
     if (postData.content && postData.content !== 'Hover over a post or comment to capture...') {
       const timer = setTimeout(() => {
         generateDm();
-      }, 500);
+      }, 800);
       return () => clearTimeout(timer);
     }
-  }, [dmTone, dmWordCount, generateDm]);
+  }, [dmTone, dmWordCount, generateDm, isDmEnabled]);
 
   return {
     notes,
@@ -100,6 +102,8 @@ export const useCommentGenerator = (postData) => {
     setDmTone,
     dmWordCount,
     setDmWordCount,
+    isDmEnabled,
+    setIsDmEnabled,
     selectedModel,
     setSelectedModel,
     isLoading,
@@ -110,5 +114,3 @@ export const useCommentGenerator = (postData) => {
     generateDm
   };
 };
-
-

@@ -48,6 +48,7 @@
   "host_permissions": [
     "https://*.linkedin.com/*",
     "https://api.groq.com/*",
+    "https://*.lambda-url.eu-north-1.on.aws/*",
     "https://*.lambda-url.us-east-1.on.aws/*"
   ]
 }
