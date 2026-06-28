@@ -1,4 +1,4 @@
-const PROXY_ENDPOINT = 'https://vyme34pwcao7l26mhjszdn3di40bacdc.lambda-url.us-east-1.on.aws/';
+const PROXY_ENDPOINT = 'https://65tt34qnvkjmlaa5dnaoiaddzi0tmhgs.lambda-url.eu-north-1.on.aws/';
 console.log('AI Assistant: Initialized with PROXY_ENDPOINT:', PROXY_ENDPOINT);
 
 import { buildPrompts, buildDmPrompts } from './promptBuilder.js';
@@ -22,7 +22,7 @@ const handleRequest = async (systemPrompt, userPrompt, selectedModel, onChunk) =
 
 const handleProxyRequest = async (systemPrompt, userPrompt, selectedModel, onChunk) => {
   console.log('AI Assistant: handleProxyRequest starting via Background...');
-  
+
   return new Promise((resolve, reject) => {
     if (!chrome.runtime?.id) {
       return reject(new Error('Extension context invalidated. Please refresh the page.'));
@@ -42,31 +42,40 @@ const handleProxyRequest = async (systemPrompt, userPrompt, selectedModel, onChu
           console.error('AI Assistant: Background Error:', chrome.runtime.lastError);
           const errMsg = chrome.runtime.lastError.message;
           if (errMsg.includes('Extension context invalidated')) {
-             return reject(new Error('Extension context invalidated. Please refresh the page.'));
+            return reject(new Error('Extension context invalidated. Please refresh the page.'));
           }
           return reject(new Error(errMsg));
         }
-
         if (response && response.success) {
           const data = response.data;
           console.log('AI Assistant: Proxy Response Data:', data);
-          
-          let result = '';
-          if (typeof data === 'string') {
-            result = data;
-          } else if (data.ok !== undefined && data.ok === true) {
-            result = data.response || '';
-          } else if (data.response || data.comment || data.message || data.text) {
-            result = data.response || data.comment || data.message || data.text;
+
+          let result = [];
+          if (data && typeof data === 'object') {
+            if (data.responses && Array.isArray(data.responses)) {
+              result = data.responses;
+            } else if (data.response) {
+              result = Array.isArray(data.response) ? data.response : [data.response];
+            } else if (data.comment) {
+              result = Array.isArray(data.comment) ? data.comment : [data.comment];
+            } else if (data.message) {
+              result = Array.isArray(data.message) ? data.message : [data.message];
+            } else if (data.text) {
+              result = Array.isArray(data.text) ? data.text : [data.text];
+            } else {
+              result = [JSON.stringify(data)];
+            }
+          } else if (typeof data === 'string') {
+            result = [data];
           } else {
-            result = JSON.stringify(data);
+            result = [JSON.stringify(data)];
           }
 
-          if (result) {
+          if (result && result.length > 0) {
             onChunk(result);
             resolve(result);
           } else {
-            reject(new Error(data.message || 'AI request failed'));
+            reject(new Error(data?.message || 'AI request failed'));
           }
         } else {
           reject(new Error(response?.error || 'Unknown proxy error'));
@@ -86,7 +95,7 @@ const handleProxyRequest = async (systemPrompt, userPrompt, selectedModel, onChu
 
 const formatError = (error) => {
   let message = 'Something went wrong.';
-  
+
   const errorStr = error.message || '';
   const errorData = error.response?.data?.error || {};
 

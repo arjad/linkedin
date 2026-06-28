@@ -3,8 +3,8 @@ import { generateAIComment, generateAIDm } from './aiClient.js';
 import { AI_MODELS, DEFAULT_MODEL } from './models.js';
 
 export const useCommentGenerator = (postData) => {
-  const [notes, setNotes] = useState('');
-  const [dmNotes, setDmNotes] = useState('');
+  const [notes, setNotes] = useState([]);
+  const [dmNotes, setDmNotes] = useState([]);
   const [tone, setTone] = useState('Professional');
   const [wordCount, setWordCount] = useState('Short');
 
@@ -25,7 +25,7 @@ export const useCommentGenerator = (postData) => {
     if (!postData.content && !postData.isImagePost) return;
 
     setIsLoading(true);
-    setNotes('');
+    setNotes([]);
     setError(null);
 
     try {
@@ -44,7 +44,7 @@ export const useCommentGenerator = (postData) => {
     if (!postData.content || postData.content === 'Hover over a post or comment to capture...') return;
 
     setIsDmLoading(true);
-    setDmNotes('');
+    setDmNotes([]);
     setError(null);
 
     try {

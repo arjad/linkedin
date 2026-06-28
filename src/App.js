@@ -39,6 +39,17 @@ const App = () => {
   const [activeSettingsTab, setActiveSettingsTab] = useState('about');
   const [toast, setToast] = useState({ visible: false, message: '' });
 
+  const [activeCommentIndex, setActiveCommentIndex] = useState(0);
+  const [activeDmIndex, setActiveDmIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveCommentIndex(0);
+  }, [notes]);
+
+  useEffect(() => {
+    setActiveDmIndex(0);
+  }, [dmNotes]);
+
   const isMessagingMode = window.location.href.includes('/messaging');
 
   const showToast = (message) => {
@@ -663,15 +674,59 @@ const App = () => {
                 {isLoading ? (
                   <Loader message="Crafting the perfect comment..." />
                 ) : (
-                  <textarea
-                    style={{ ...styles.textarea, color: 'black', minHeight: '100px', borderColor: isLoading ? theme.colors.accent + '30' : theme.colors.border }}
-                    placeholder="Your AI-powered insight will appear here..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
+                  <>
+                    <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '4px' }}>
+                      Debug: {JSON.stringify(notes)}
+                    </div>
+
+                    {Array.isArray(notes) && notes.length > 1 && (
+                      <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+                        {notes.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setActiveCommentIndex(idx)}
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              borderRadius: theme.radius.sm,
+                              border: '1px solid',
+                              borderColor: activeCommentIndex === idx ? theme.colors.primary : theme.colors.border,
+                              background: activeCommentIndex === idx ? theme.colors.primary + '12' : theme.colors.surface,
+                              color: activeCommentIndex === idx ? theme.colors.primary : theme.colors.textMuted,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              whiteSpace: 'nowrap',
+                              outline: 'none'
+                            }}
+                          >
+                            Option {idx + 1}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <textarea
+                      style={{ ...styles.textarea, color: 'black', minHeight: '100px', borderColor: isLoading ? theme.colors.accent + '30' : theme.colors.border }}
+                      placeholder="Your AI-powered insight will appear here..."
+                      value={Array.isArray(notes) ? (notes[activeCommentIndex] || '') : notes}
+                      onChange={(e) => {
+                        if (Array.isArray(notes)) {
+                          const updated = [...notes];
+                          updated[activeCommentIndex] = e.target.value;
+                          setNotes(updated);
+                        } else {
+                          setNotes(e.target.value);
+                        }
+                      }}
+                    />
+                  </>
                 )}
                 <div style={styles.actionTray}>
-                  <button style={styles.iconBtn} onClick={() => handleCopy(notes)}>
+                  <button style={{ ...styles.iconBtn, background: theme.colors.primary, color: '#fff' }} onClick={() => handleInsert(Array.isArray(notes) ? (notes[activeCommentIndex] || '') : notes)}>
+                    <Icons.Sparkles size={14} />
+                    Insert
+                  </button>
+                  <button style={styles.iconBtn} onClick={() => handleCopy(Array.isArray(notes) ? (notes[activeCommentIndex] || '') : notes)}>
                     <Icons.Copy color={copied ? theme.colors.success : theme.colors.text} size={14} />
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
@@ -735,15 +790,55 @@ const App = () => {
               {isDmLoading ? (
                 <Loader message="Personalizing your DM..." />
               ) : (
-                <textarea
-                  style={{ ...styles.textarea, minHeight: '100px', fontSize: '14px', borderColor: isDmLoading ? theme.colors.accent + '30' : theme.colors.border }}
-                  placeholder="Personalized DM will appear here..."
-                  value={dmNotes}
-                  onChange={(e) => setDmNotes(e.target.value)}
-                />
+                <>
+                  {Array.isArray(dmNotes) && dmNotes.length > 1 && (
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+                      {dmNotes.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setActiveDmIndex(idx)}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            borderRadius: theme.radius.sm,
+                            border: '1px solid',
+                            borderColor: activeDmIndex === idx ? theme.colors.accent : theme.colors.border,
+                            background: activeDmIndex === idx ? theme.colors.accent + '12' : theme.colors.surface,
+                            color: activeDmIndex === idx ? theme.colors.accent : theme.colors.textMuted,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            whiteSpace: 'nowrap',
+                            outline: 'none'
+                          }}
+                        >
+                          Option {idx + 1}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <textarea
+                    style={{ ...styles.textarea, minHeight: '100px', fontSize: '14px', borderColor: isDmLoading ? theme.colors.accent + '30' : theme.colors.border }}
+                    placeholder="Personalized DM will appear here..."
+                    value={Array.isArray(dmNotes) ? (dmNotes[activeDmIndex] || '') : dmNotes}
+                    onChange={(e) => {
+                      if (Array.isArray(dmNotes)) {
+                        const updated = [...dmNotes];
+                        updated[activeDmIndex] = e.target.value;
+                        setDmNotes(updated);
+                      } else {
+                        setDmNotes(e.target.value);
+                      }
+                    }}
+                  />
+                </>
               )}
               <div style={styles.actionTray}>
-                <button style={styles.iconBtn} onClick={() => handleCopy(dmNotes, true)}>
+                <button style={{ ...styles.iconBtn, background: theme.colors.accent, color: '#fff' }} onClick={() => handleInsert(Array.isArray(dmNotes) ? (dmNotes[activeDmIndex] || '') : dmNotes)}>
+                  <Icons.Sparkles size={14} />
+                  Insert
+                </button>
+                <button style={styles.iconBtn} onClick={() => handleCopy(Array.isArray(dmNotes) ? (dmNotes[activeDmIndex] || '') : dmNotes, true)}>
                   <Icons.Copy color={dmCopied ? theme.colors.success : theme.colors.text} size={14} />
                   {dmCopied ? 'Copied!' : 'Copy'}
                 </button>
